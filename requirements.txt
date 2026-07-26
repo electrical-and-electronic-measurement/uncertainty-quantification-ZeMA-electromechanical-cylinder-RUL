@@ -1,0 +1,4 @@
+zema_emc_annotated==0.7.1
+torch==2.13.0
+numpy==1.26.4
+matplotlib==3.10.9

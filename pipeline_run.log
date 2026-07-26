@@ -1,0 +1,9 @@
+
+=== Case Study A results (fill Table/Fig in the paper) ===
+test RMSE                  : 0.0641
+mean u_A (LPU)             : 6.4134e-01
+mean u_A (Monte Carlo)     : 9.8413e-01
+LPU vs MC median rel. diff : 36.47%  (Phase 5 check)
+mean u_B (ensemble)        : 4.9329e-02
+mean u_c (combined)        : 6.4373e-01
+empirical coverage @ k=2   : 100.0%  (target ~95%)

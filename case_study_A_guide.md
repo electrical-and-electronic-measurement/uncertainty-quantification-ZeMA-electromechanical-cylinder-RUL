@@ -55,9 +55,9 @@ Fill the source inventory that becomes the rows of `Table \ref{tab:zema_uncertai
 
 | Source | Type | How obtained in this case study |
 |---|---|---|
-| Sensor input uncertainty (11 channels) | A | Distributed with the dataset (`samples.uncertainties`) — metrologically evaluated per reading |
-| Training process variability | B | Std. dev. of predictions across a 10-seed ensemble (Step 4) |
-| Architecture selection | B | Optional: repeat ensemble across 2–3 widths; otherwise state it is held fixed and excluded, with justification |
+| `u_physical` — sensor input uncertainty (11 channels) | A | Distributed with the dataset (`samples.uncertainties`) — metrologically evaluated per reading |
+| `u_training` — training process variability | A | Std. dev. of predictions across a 10-seed ensemble (Step 4) |
+| `u_architecture` — architecture selection | — | Optional: repeat ensemble across 2–3 widths; otherwise state it is held fixed and excluded, with justification |
 | Generalization / distribution shift | B | Assessed via held-out coverage (Step 6); no separate budget line unless coverage fails |
 | Label (RUL definition) | — | Negligible by construction (deterministic cycle index) |
 
@@ -81,14 +81,14 @@ Training details to report for reproducibility (Phase 5 reporting requirements):
 
 ---
 
-## Step 4 — Ensemble for Type B (Phase 2/4)
+## Step 4 — Ensemble for `u_training` (Phase 2/4)
 
-The script trains `n_ensemble=10` models differing only in random seed. For each test sample, `u_B` = standard deviation of the 10 predictions (ddof=1). This is the paper's "training process uncertainty" quantified exactly as Phase 2 prescribes ("training an ensemble of models and analyzing the variance of predictions").
+The script trains `n_ensemble=10` models differing only in random seed. For each test sample, `u_training` = standard deviation of the 10 predictions (ddof=1). This is the paper's "training process uncertainty" quantified exactly as Phase 2 prescribes ("training an ensemble of models and analyzing the variance of predictions").
 
 Two honest caveats to preempt reviewers:
 
 1. A 10-seed ensemble captures *optimization* variability, not *architecture* uncertainty. Either add a second ensemble axis over widths, or state the limitation — the paper's methodology already distinguishes these sources, so consistency matters.
-2. The ensemble std is a Type B *estimate*; with 10 seeds its own relative uncertainty is ~24% (chi-squared, 9 dof). If `u_B` turns out to dominate `u_c`, increase to 20–30 seeds before finalizing the budget table.
+2. The ensemble std is a statistical (Type A) evaluation of an epistemic, model-related contribution, so it is itself an *estimate*; with 10 seeds its own relative uncertainty is ~24% (chi-squared, 9 dof). If `u_training` turns out to dominate `u_c`, increase to 20–30 seeds before finalizing the budget table.
 
 ---
 
@@ -96,11 +96,11 @@ Two honest caveats to preempt reviewers:
 
 For each held-out cycle the script computes, per test sample:
 
-1. `u_A` via `propagate_lpu()` — the layer-wise analytical propagation, Eq. `\ref{eq:Law_of_Propagation_of_Uncertainty_for_NN}`;
-2. `u_A^MC` via `propagate_mc()` — 10,000 input samples per GUM Supplement 1 (JCGM 101:2008), same model;
-3. `u_c = sqrt(u_A² + u_B²)` — the quadrature combination, Eq. `\ref{eq:combined_std_uncertainty_regression}`.
+1. `u_physical` (LPU) via `propagate_lpu()` — the layer-wise analytical propagation, Eq. `\ref{eq:Law_of_Propagation_of_Uncertainty_for_NN}`;
+2. `u_physical` (MC) via `propagate_mc()` — 10,000 input samples per GUM Supplement 1 (JCGM 101:2008), same model;
+3. `u_c = sqrt(u_physical² + u_training²)` — the quadrature combination, Eq. `\ref{eq:combined_std_uncertainty}` (here `u_model² = u_training²`: architecture is held fixed and `u_calibration` is out of scope).
 
-Outputs land in `case_study_A_results.csv` with one row per test sample: `y_true, y_hat, u_A_lpu, u_A_mc, u_B, u_c, covered_k2`.
+Outputs land in `case_study_A_results.csv` with one row per test sample: `y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2`.
 
 **Populating the paper's uncertainty budget table.** Use the *mean over the test set* for each column, and add the sensitivity information: the dominant input channels can be extracted from the first-layer contribution `W(1) diag(u(x)) `— rank sensor channels by their summed absolute contribution and report the top 2–3 in the "Sensitivity" column (e.g., "axial force and pressure dominate"). That single addition turns the table from a formality into an actual diagnostic, which is the point the paper's Reporting section makes ("relative magnitudes of contributions identify dominant sources").
 
@@ -110,13 +110,13 @@ Outputs land in `case_study_A_results.csv` with one row per test sample: `y_true
 
 Three checks, all computed by the script:
 
-**LPU vs MC agreement.** Median relative difference between `u_A_lpu` and `u_A_mc` across the test set. Expected: low single-digit percent if the linearity assumption holds at the dataset's uncertainty magnitudes (compare with the <2% reported by Lin et al. for the optical sensor — you now have your own number instead of citing theirs). If the difference is large (>5–10%), that is itself a *result*: it means the first-order approximation is inadequate at this network depth, MC becomes the primary method per the paper's own decision rule, and the case study demonstrates the framework's validation phase catching a violated assumption. Either outcome is publishable; do not tune the network to force agreement.
+**LPU vs MC agreement.** Median relative difference between `u_physical_lpu` and `u_physical_mc` across the test set. Expected: low single-digit percent if the linearity assumption holds at the dataset's uncertainty magnitudes (compare with the <2% reported by Lin et al. for the optical sensor — you now have your own number instead of citing theirs). If the difference is large (>5–10%), that is itself a *result*: it means the first-order approximation is inadequate at this network depth, MC becomes the primary method per the paper's own decision rule, and the case study demonstrates the framework's validation phase catching a violated assumption. Either outcome is publishable; do not tune the network to force agreement.
 
-**Empirical coverage at k=2.** Fraction of test samples with `|y_true − y_hat| ≤ 2·u_c`. Target ≈95%. Systematic under-coverage (e.g., 70%) means a source is missing from the budget — the usual suspect here is model bias (MLP misfit), which is *not* a dispersion and signals that residual analysis should be added as a Type B term. Discuss whatever you find; the coverage check is the paper's "gold standard" sentence made concrete.
+**Empirical coverage at k=2.** Fraction of test samples with `|y_true − y_hat| ≤ 2·u_c`. Target ≈95%. Systematic under-coverage (e.g., 70%) means a source is missing from the budget — the usual suspect here is model bias (MLP misfit), which is *not* a dispersion and signals that residual analysis should be added (a `u_calibration` term, or bias reported separately). Discuss whatever you find; the coverage check is the paper's "gold standard" sentence made concrete.
 
-**Convergence of MC.** Verify `n_mc=10_000` suffices by re-running one sample at 100,000 and confirming `u_A_mc` moves by ≪1%. One sentence in the paper ("convergence verified by...") satisfies the Phase-5 reporting requirement for the MC settings.
+**Convergence of MC.** Verify `n_mc=10_000` suffices by re-running one sample at 100,000 and confirming `u_physical_mc` moves by ≪1%. One sentence in the paper ("convergence verified by...") satisfies the Phase-5 reporting requirement for the MC settings.
 
-**Figure for the paper** (`fig:zema_lpu_vs_mc`): a two-panel figure works well — left panel scatter of `u_A_lpu` vs `u_A_mc` with the identity line (visual linearity check); right panel predictions ±k=2 bands vs true consumed-life over the test cycles, with coverage annotated. Both are three lines of matplotlib from the CSV.
+**Figure for the paper** (`fig:zema_lpu_vs_mc`): a two-panel figure works well — left panel scatter of `u_physical_lpu` vs `u_physical_mc` with the identity line (visual linearity check); right panel predictions ±k=2 bands vs true consumed-life over the test cycles, with coverage annotated. Both are three lines of matplotlib from the CSV.
 
 ---
 
@@ -126,7 +126,7 @@ Replace the red TODOs in Section 5.1 with the concrete numbers. Suggested mappin
 
 - The dataset/tooling paragraph is already written — verify version numbers (`zema_emc_annotated` version, torch version) and add them.
 - Table `\ref{tab:zema_uncertainty_budget}`: means from the CSV + dominant-sensor sensitivity ranking.
-- One new sentence for the LPU-vs-MC number: "Across the held-out cycles, the analytical and Monte Carlo estimates of u_A agreed to within X% (median), confirming/refuting the first-order linearity assumption at the uncertainty magnitudes present in the data."
+- One new sentence for the LPU-vs-MC number: "Across the held-out cycles, the analytical and Monte Carlo estimates of u_physical agreed to within X% (median), confirming/refuting the first-order linearity assumption at the uncertainty magnitudes present in the data."
 - One new sentence for coverage: "The empirical coverage of the k=2 expanded interval was Y% against the ≈95% target..."
 - Reporting statement, per Phase 5: state the diagonal-covariance assumption, the label-uncertainty-negligible argument, the normalization propagation, and the MC settings (M=10^4, Gaussian input distributions, convergence check).
 
@@ -136,4 +136,4 @@ Environment + self-test: under an hour. Dataset download: budget roughly an hour
 
 ## Known risks and fallbacks
 
-If the Zenodo download is slow or blocked, the raw HDF5 is mirrored at doi:10.5281/zenodo.5185953 and `ZeMASamples(..., skip_hash_check=True)` accepts a manually placed file in the cache directory. If `u_B` dominates `u_c` (plausible for a smallish MLP on 4766 samples), that is a finding, not a failure — it quantitatively supports the paper's claim that epistemic sources "should be minimized before being included in the uncertainty budget," and motivates the larger ensemble of Step 4. If coverage is poor, add a residual-based Type B term and report both budgets (before/after) — that before/after comparison is arguably a *stronger* demonstration of the methodology than a clean pass would be.
+If the Zenodo download is slow or blocked, the raw HDF5 is mirrored at doi:10.5281/zenodo.5185953 and `ZeMASamples(..., skip_hash_check=True)` accepts a manually placed file in the cache directory. If `u_training` dominates `u_c` (plausible for a smallish MLP on 4766 samples), that is a finding, not a failure — it quantitatively supports the paper's claim that epistemic sources "should be minimized before being included in the uncertainty budget," and motivates the larger ensemble of Step 4. If coverage is poor, add a residual-based `u_calibration` term and report both budgets (before/after) — that before/after comparison is arguably a *stronger* demonstration of the methodology than a clean pass would be.

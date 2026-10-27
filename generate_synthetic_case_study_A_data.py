@@ -47,24 +47,24 @@ def make_synthetic_results(seed: int = SEED) -> np.ndarray:
     # --- y_hat: true value + plausible model residual ---
     y_hat = y_true + rng.normal(0.0, 0.02, n_test)
 
-    # --- u_A via LPU: plausible propagated sensor-uncertainty magnitude ---
-    u_A_lpu = np.abs(rng.normal(0.009, 0.0025, n_test)) + 1e-4
+    # --- u_physical via LPU: plausible propagated sensor-uncertainty magnitude ---
+    u_physical_lpu = np.abs(rng.normal(0.009, 0.0025, n_test)) + 1e-4
 
-    # --- u_A via Monte Carlo: LPU +/- a few percent (linearity check) ---
-    u_A_mc = u_A_lpu * (1.0 + rng.normal(0.0, 0.025, n_test))
-    u_A_mc = np.abs(u_A_mc) + 1e-4
+    # --- u_physical via Monte Carlo: LPU +/- a few percent (linearity check) ---
+    u_physical_mc = u_physical_lpu * (1.0 + rng.normal(0.0, 0.025, n_test))
+    u_physical_mc = np.abs(u_physical_mc) + 1e-4
 
-    # --- u_B: ensemble (training-process) uncertainty, comparable scale ---
-    u_B = np.abs(rng.normal(0.012, 0.003, n_test)) + 1e-4
+    # --- u_training: ensemble (training-process) uncertainty, comparable scale ---
+    u_training = np.abs(rng.normal(0.012, 0.003, n_test)) + 1e-4
 
     # --- combined uncertainty, same quadrature rule as the real pipeline ---
-    u_c = np.sqrt(u_A_lpu**2 + u_B**2)
+    u_c = np.sqrt(u_physical_lpu**2 + u_training**2)
 
     # --- coverage indicator at k=2 ---
     covered_k2 = (np.abs(y_true - y_hat) <= 2 * u_c).astype(int)
 
     return np.column_stack(
-        [y_true, y_hat, u_A_lpu, u_A_mc, u_B, u_c, covered_k2]
+        [y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2]
     )
 
 
@@ -86,7 +86,7 @@ def main():
         args.out,
         arr,
         delimiter=",",
-        header="y_true,y_hat,u_A_lpu,u_A_mc,u_B,u_c,covered_k2",
+        header="y_true,y_hat,u_physical_lpu,u_physical_mc,u_training,u_c,covered_k2",
     )
 
     print(f"Wrote {args.out}  ({arr.shape[0]} synthetic rows)")

@@ -22,19 +22,19 @@ construction.
 **Goal.** Quantify, per test cycle, the standard uncertainty `u(ŷ)` on the
 model's prediction by combining:
 
-- **Type A** — sensor input uncertainty propagated through a trained MLP, via
+- **`u_physical`** — sensor input uncertainty propagated through a trained MLP, via
   both the analytical Law of Propagation of Uncertainty (LPU) and Monte Carlo
   (GUM Supplement 1 / JCGM 101:2008), so the two can be cross-checked against
   each other;
-- **Type B** — training-process variability, estimated as the spread across a
-  10-seed model ensemble;
+- **`u_training`** — training-process variability, estimated statistically as the
+  spread across a 10-seed model ensemble;
 
-combined in quadrature, `u_c = sqrt(u_A² + u_B²)`, and validated against
+combined in quadrature, `u_c = sqrt(u_physical² + u_training²)`, and validated against
 empirical coverage of the resulting `±k·u_c` interval.
 
 **Headline result.** LPU and Monte Carlo disagree by a median **36.5%** — the
 first-order linearity assumption breaks down at this network depth and input-
-uncertainty magnitude, so Monte Carlo is reported as the primary `u_A`
+uncertainty magnitude, so Monte Carlo is reported as the primary `u_physical`
 estimate (per the paper's own decision rule, not a bug). Coverage at `k=2` is
 **100%** (vs. an ~95% target), traced to one dominant, normalization-amplified
 sensor channel (Pressure, 51.8% of first-layer sensitivity) rather than a
@@ -47,7 +47,7 @@ See `case_study_A_report.md` §7 for the full diagnosis.
 
 | File | Role |
 |---|---|
-| [case_study_A_analysis.py](case_study_A_analysis.py) | Core pipeline: downloads/loads the ZeMA dataset, z-scores inputs (with exact GUM propagation through normalization), trains a 10-seed MLP ensemble, computes `u_A` via both `propagate_lpu()` (analytical LPU) and `propagate_mc()` (Monte Carlo), combines `u_c`, and writes `case_study_A_results.csv`. Also contains `self_test_lpu()`, an implementation-correctness gate independent of the dataset. |
+| [case_study_A_analysis.py](case_study_A_analysis.py) | Core pipeline: downloads/loads the ZeMA dataset, z-scores inputs (with exact GUM propagation through normalization), trains a 10-seed MLP ensemble, computes `u_physical` via both `propagate_lpu()` (analytical LPU) and `propagate_mc()` (Monte Carlo), combines `u_c`, and writes `case_study_A_results.csv`. Also contains `self_test_lpu()`, an implementation-correctness gate independent of the dataset. |
 | [make_validation_figure.py](make_validation_figure.py) | Reads a results CSV and renders the two-panel validation figure (`fig:zema_lpu_vs_mc`): LPU-vs-MC scatter with identity line, and predictions ±k=2 band vs. ground truth with coverage annotated. |
 | [generate_synthetic_case_study_A_data.py](generate_synthetic_case_study_A_data.py) | Dev/testing-only helper. Produces a fake CSV with the same schema as the real pipeline so `make_validation_figure.py` could be exercised before the real dataset finished downloading. Output is explicitly self-labeled `*** SYNTHETIC DATA ***` — never cite it in the paper. |
 | [requirements.txt](requirements.txt) | Pinned versions used to produce every real result: `zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`. |
@@ -63,7 +63,7 @@ See `case_study_A_report.md` §7 for the full diagnosis.
 
 | File | Role |
 |---|---|
-| [case_study_A_results.csv](case_study_A_results.csv) | Real output, 953 held-out test cycles × 7 columns: `y_true, y_hat, u_A_lpu, u_A_mc, u_B, u_c, covered_k2`. |
+| [case_study_A_results.csv](case_study_A_results.csv) | Real output, 953 held-out test cycles × 7 columns: `y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2`. |
 | [zema_lpu_vs_mc.pdf](zema_lpu_vs_mc.pdf) | The real `fig:zema_lpu_vs_mc` validation figure, generated from `case_study_A_results.csv`. |
 | [pipeline_run.log](pipeline_run.log) | Captured stdout of the actual `case_study_A_analysis.py` run that produced the results above. |
 | [case_study_A_report.pdf](case_study_A_report.pdf) / [case_study_A_report.tex](case_study_A_report.tex) | Rendered/typeset versions of the report. |
@@ -84,11 +84,11 @@ Means over the 953-cycle held-out test set:
 |---|---|
 | Test RMSE | 0.0641 |
 | R² | 0.951 |
-| mean `u_A` (LPU) | 0.6413 |
-| mean `u_A` (Monte Carlo, primary) | 0.9841 |
+| mean `u_physical` (LPU) | 0.6413 |
+| mean `u_physical` (Monte Carlo, primary) | 0.9841 |
 | LPU vs. MC median relative difference | 36.47% |
-| mean `u_B` (10-seed ensemble) | 0.0493 |
-| mean `u_c` (combined) | ≈0.985 |
+| mean `u_training` (10-seed ensemble) | 0.0493 |
+| mean `u_c` (combined, MC-based; the CSV `u_c` column uses the LPU value, mean 0.6437) | ≈0.985 |
 | Empirical coverage @ k=2 | 100.0% (953/953) |
 | MC convergence (10k→100k→1M) | Δ 1.75% → 0.08% |
 
@@ -119,7 +119,7 @@ python case_study_A_analysis.py --self-test
 This builds a random softplus MLP, propagates a diagonal input covariance
 analytically, compares against a 200,000-sample Monte Carlo run, and hard-
 asserts agreement within 2%. It needs no dataset and no download. If it
-fails, do not trust any downstream `u_A` numbers — the bug is in
+fails, do not trust any downstream `u_physical` numbers — the bug is in
 `propagate_lpu`/`propagate_mc`, not in the case study's data or model.
 
 ### 2. Run the full pipeline
@@ -170,15 +170,15 @@ never copy a number from it, or a plot made from it, into the paper.
 ### Interpreting a re-run that disagrees with this report
 
 - **LPU vs. MC median relative difference** below ~5–10% → LPU may be
-  reported as primary `u_A`. Above that → linearity assumption is violated at
+  reported as primary `u_physical`. Above that → linearity assumption is violated at
   this depth/uncertainty magnitude; report MC as primary instead. Either
   outcome is a valid, publishable result — do not tune the network to force
   agreement.
 - **Coverage @ k=2** far from ~95%: under-coverage usually means a missing
-  Type B source (check residual bias first); over-coverage (as found here)
-  usually means the Type A budget is inflated by one channel — check the
+  uncertainty source (check residual bias first); over-coverage (as found here)
+  usually means the `u_physical` budget is inflated by one channel — check the
   per-channel normalized-uncertainty and first-layer sensitivity breakdown
   (`case_study_A_report.md` §7) before assuming a real over-conservatism.
-- **Ensemble `u_B`**: with only 10 seeds, `u_B` itself carries ~24% relative
-  sampling noise (χ², 9 dof). If `u_B` turns out to dominate `u_c`, increase
+- **Ensemble `u_training`**: with only 10 seeds, `u_training` itself carries ~24% relative
+  sampling noise (χ², 9 dof). If `u_training` turns out to dominate `u_c`, increase
   `n_ensemble` to 20–30 before finalizing the budget table.

@@ -55,8 +55,8 @@ Task & Regression --- consumed-lifetime fraction $y_k = k/N \in [0,1]$; $\Rul = 
 Input dimension & 1100 (11 sensor channels $\times$ 100 readings/cycle) \\
 Model & MLP (128, 64, 32), softplus activation, float64 \\
 Test set & 953 held-out cycles (20\% of 4766, random split, seed 0) \\
-Type A uncertainty & Propagated analytically (LPU) and via Monte Carlo (GUM Supplement 1, $M=10^4$) \\
-Type B uncertainty & 10-seed training ensemble \\
+$u_{\mathrm{physical}}$ (input quantities) & Propagated analytically (LPU) and via Monte Carlo (GUM Supplement 1, $M=10^4$) \\
+$u_{\mathrm{training}}$ (model-related) & 10-seed training ensemble, evaluated statistically \\
 \textbf{Headline result} & LPU and MC disagree by a median \textbf{36.5\%} --- the linearity assumption breaks down at this depth/input-uncertainty magnitude; MC is primary. Coverage @ $k=2$ is \textbf{100\%}, driven by one dominant, uncertainty-amplified sensor channel (Pressure), not a missing source. \\
 \bottomrule
 \end{tabular}
@@ -69,14 +69,16 @@ the true, deterministically-assigned consumed-lifetime fraction at cycle $k$
 model estimate of the corresponding quantity: $\hat y_k$ is the trained
 MLP's point prediction of $y_k$ from that cycle's sensor readings
 (\texttt{y\_hat} in \texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak results.csv}), and is a distinct
-claim from its associated uncertainty. $u_A$ is the standard uncertainty in
-$\hat y_k$ propagated from sensor input uncertainty (Type A; via LPU or
-Monte Carlo --- \S\ref{sec:propagation}), $u_B$ is the standard uncertainty
-from training-process variability (Type B; the seed-ensemble spread ---
-\S\ref{sec:model}), and $u_c=\sqrt{u_A^2+u_B^2}$ is their quadrature
-combination (\S\ref{sec:propagation}), which is what the $k{=}2$
+claim from its associated uncertainty. $u_{\mathrm{physical}}$ is the standard uncertainty in
+$\hat y_k$ propagated from the sensor input uncertainties (physical-quantity uncertainty; via LPU or
+Monte Carlo --- \S\ref{sec:propagation}), $u_{\mathrm{training}}$ is the standard uncertainty
+from training-process variability (model-related, evaluated statistically from the seed-ensemble spread ---
+\S\ref{sec:model}), and $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ is their quadrature
+combination (\S\ref{sec:propagation}) --- the paper's $u_c^2=u_{\mathrm{physical}}^2+u_{\mathrm{model}}^2$
+with $u_{\mathrm{model}}^2=u_{\mathrm{training}}^2$, since the architecture is held fixed and
+$u_{\mathrm{calibration}}$ is not considered --- which is what the $k{=}2$
 expanded-uncertainty coverage checks (\S\ref{sec:validation}) are built on.
-$u_A$, $u_B$, $u_c$ are per-test-cycle quantities, not single
+$u_{\mathrm{physical}}$, $u_{\mathrm{training}}$, $u_c$ are per-test-cycle quantities, not single
 dataset-wide constants.
 
 % ============================================================
@@ -88,7 +90,7 @@ and should not be conflated:
 
 \begin{itemize}
 \item \textbf{Implementation self-test (Step 0, \S\ref{sec:environment}).} A
-random synthetic softplus MLP's analytically propagated $u_A$ is compared
+random synthetic softplus MLP's analytically propagated $u_{\mathrm{physical}}$ is compared
 against a 200{,}000-sample Monte Carlo estimate.
 \texttt{case\allowbreak\_study\allowbreak\_A\allowbreak\_analysis.py::self\allowbreak\_test\allowbreak\_lpu} \textbf{hard-asserts}
 the relative difference is below \textbf{2\%} --- this is a pass/fail gate
@@ -98,7 +100,7 @@ independent of anything about the ZeMA dataset or the trained model.
 the real dataset and trained model, the guide's decision rule treats a
 median relative difference of a \textbf{low single-digit percent} as
 consistent with the first-order linearity assumption holding, in which case
-LPU may be reported as the primary $u_A$ estimate. A difference \textbf{above
+LPU may be reported as the primary $u_{\mathrm{physical}}$ estimate. A difference \textbf{above
 roughly 5--10\%} is treated as evidence that the linearity assumption is
 violated at this network depth and input-uncertainty magnitude --- in which
 case Monte Carlo, not LPU, is reported as the primary estimate. This is a
@@ -111,7 +113,7 @@ The self-test in this run passed at $0.096\%$ (\S\ref{sec:environment}),
 confirming the propagation code is correct. The case study's own LPU-vs-MC
 result is $36.5\%$ median relative difference (\S\ref{sec:propagation}) ---
 well above the 5--10\% ceiling --- which is why Monte Carlo, not LPU, is
-used as the primary $u_A$ throughout the rest of this report
+used as the primary $u_{\mathrm{physical}}$ throughout the rest of this report
 (\S\ref{sec:propagation}, \S\ref{sec:budget}, \S\ref{sec:paperready}).
 
 % ============================================================
@@ -198,7 +200,7 @@ package documents.
 \begin{enumerate}
 \item \textbf{Measurand.} $y_k = k/N$, deterministic function of cycle index
 $\rightarrow$ \textbf{label uncertainty is negligible by construction}. No
-Type A or Type B budget line is needed for the target.
+budget line is needed for the target.
 \item \textbf{Task type.} Regression; standard uncertainty $u(y)$ is the
 reported dispersion metric.
 \item \textbf{Input dimension.} Full resolution used
@@ -216,10 +218,11 @@ fast-iteration option.
 \toprule
 Source & Type & How obtained \\
 \midrule
-Sensor input uncertainty (11 channels) & A & \texttt{samples.uncertainties}, metrologically evaluated per reading \\
-Training process variability & B & Std.\ dev.\ of predictions across a 10-seed ensemble (\S\ref{sec:model}) \\
-Architecture selection & B & \textbf{Excluded}, held fixed at (128,64,32)/softplus --- not swept in this case study \\
+$u_{\mathrm{physical}}$ --- sensor input uncertainty (11 channels) & A & \texttt{samples.uncertainties}, metrologically evaluated per reading \\
+$u_{\mathrm{training}}$ --- training process variability & A & Std.\ dev.\ of predictions across a 10-seed ensemble (\S\ref{sec:model}) \\
+$u_{\mathrm{architecture}}$ --- architecture selection & --- & \textbf{Excluded}, held fixed at (128,64,32)/softplus --- not swept in this case study \\
 Generalization / distribution shift & B & Assessed via held-out coverage (\S\ref{sec:validation}); no separate budget line, since coverage did not indicate a missing source \\
+$u_{\mathrm{calibration}}$ --- measurement-model calibration & --- & \textbf{Not considered}: calibrating the RUL predictor is beyond the scope of this case study \\
 Label (RUL definition) & --- & Negligible by construction (\S\ref{sec:data}) \\
 \bottomrule
 \end{tabular}
@@ -242,7 +245,7 @@ great deal --- see \S\ref{sec:propagation}.
 \end{itemize}
 
 % ============================================================
-\section{Model, training, and the Type B ensemble (Steps 3--4 / Phase 3)}
+\section{Model, training, and the training-uncertainty ensemble (Steps 3--4 / Phase 3)}
 \label{sec:model}
 
 Architecture: MLP with hidden layers (128, 64, 32), softplus activation
@@ -268,10 +271,10 @@ out, ended up being the number actually reported --- see
 Xavier init, float64 throughout (kept the LPU-vs-MC comparison free of
 float32 rounding noise).
 
-\textbf{Type B --- 10-seed ensemble.} Ten models, identical architecture
+\textbf{$u_{\mathrm{training}}$ --- 10-seed ensemble.} A statistical (Type~A) evaluation of an epistemic, model-related contribution. Ten models, identical architecture
 and data, differing only in the seed passed to \texttt{torch.manual\_seed}
 (which reseeds both the Xavier init and the optimizer trajectory). For each
-held-out cycle, $u_B$ = standard deviation of the 10 predictions
+held-out cycle, $u_{\mathrm{training}}$ = standard deviation of the 10 predictions
 (\texttt{ddof=1}). The first ensemble member (seed 0) is retained as the
 reference model for LPU/MC propagation and for the sensitivity ranking in
 \S\ref{sec:propagation}.
@@ -281,10 +284,10 @@ Caveats carried into the reporting statement:
 \item A 10-seed ensemble captures \emph{optimization} variability only, not
 architecture uncertainty (architecture was held fixed --- see
 \S\ref{sec:sources}).
-\item With 10 seeds, $u_B$'s own relative uncertainty is $\sim$24\%
-($\chi^2$, 9 dof). In this run $u_B$ (mean $0.049$) is an order of magnitude
-below $u_A$ (mean $0.641$--$0.984$ depending on method), so it does not
-dominate the combined budget and this sampling noise on $u_B$ does not
+\item With 10 seeds, $u_{\mathrm{training}}$'s own relative uncertainty is $\sim$24\%
+($\chi^2$, 9 dof). In this run $u_{\mathrm{training}}$ (mean $0.049$) is an order of magnitude
+below $u_{\mathrm{physical}}$ (mean $0.641$--$0.984$ depending on method), so it does not
+dominate the combined budget and this sampling noise on $u_{\mathrm{training}}$ does not
 materially affect $u_c$.
 \end{itemize}
 
@@ -295,34 +298,41 @@ materially affect $u_c$.
 For each of the 953 test cycles, \texttt{main()} computes:
 
 \begin{enumerate}
-\item $u_A$ via \texttt{propagate\_lpu} --- layer-wise analytical
-propagation, $U_{x^{(i)}} = H^{(i)} W^{(i)} U_{x^{(i-1)}} {W^{(i)}}^\top
-H^{(i)}$;
-\item $u_A^{MC}$ via \texttt{propagate\_mc} --- $M=10^4$ Gaussian input
+\item $u_{\mathrm{physical}}$ via \texttt{propagate\_\allowbreak lpu} --- layer-wise analytical
+propagation,
+\[
+U_{x^{(i)}} = H^{(i)} W^{(i)} U_{x^{(i-1)}} {W^{(i)}}^\top H^{(i)};
+\]
+\item $u_{\mathrm{physical}}^{\mathrm{MC}}$ via \texttt{propagate\_mc} --- $M=10^4$ Gaussian input
 draws per GUM Supplement 1 (JCGM 101:2008), same model, same point;
-\item $u_c = \sqrt{u_A^2 + u_B^2}$ --- quadrature combination.
+\item $u_c = \sqrt{u_{\mathrm{physical}}^2 + u_{\mathrm{training}}^2}$ --- quadrature combination.
 \end{enumerate}
 
 Output: \texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak results.csv}, one row per test cycle,
-columns \texttt{y\_true, y\_hat, u\_A\_lpu, u\_A\_mc, u\_B, u\_c,
+columns \texttt{y\_true, y\_hat, u\_\allowbreak physical\_\allowbreak lpu, u\_\allowbreak physical\_\allowbreak mc, u\_\allowbreak training, u\_c,
 covered\_k2} (953 data rows, verified).
 
 \subsection*{Aggregate results (means over the 953-cycle test set)}
 
 \begin{verbatim}
 test RMSE                  : 0.0641
-mean u_A (LPU)              : 6.4134e-01
-mean u_A (Monte Carlo)       : 9.8413e-01
-LPU vs MC median rel. diff  : 36.47%
-mean u_B (ensemble)          : 4.9329e-02
-mean u_c (combined, LPU-based): 6.4373e-01
-empirical coverage @ k=2     : 100.0%  (953/953)
+mean u_physical (LPU)      : 6.4134e-01
+mean u_physical (MC)       : 9.8413e-01
+LPU vs MC median rel. diff : 36.47%  (Phase 5 check)
+mean u_training (ensemble) : 4.9329e-02
+mean u_c (combined)        : 6.4373e-01
+empirical coverage @ k=2   : 100.0%  (target ~95%)
 \end{verbatim}
 
-\subsection*{Why $u_A$ is large and LPU/MC disagree --- this is a finding,
+The $u_c$ printed by the script (and stored in the CSV) combines the \textbf{LPU} estimate,
+$u_c=\sqrt{(u_{\mathrm{physical}}^{\mathrm{LPU}})^2+u_{\mathrm{training}}^2}$. Since Monte Carlo is the primary
+estimate (\S\ref{sec:threshold}), the budget in \S\ref{sec:budget} uses
+$u_c^{\mathrm{MC}}=\sqrt{(u_{\mathrm{physical}}^{\mathrm{MC}})^2+u_{\mathrm{training}}^2}\approx 0.985$; both give 100\% coverage.
+
+\subsection*{Why $u_{\mathrm{physical}}$ is large and LPU/MC disagree --- this is a finding,
 not a bug}
 
-At first glance, $u_A \approx 0.64$--$0.98$ against a measurand confined to
+At first glance, $u_{\mathrm{physical}} \approx 0.64$--$0.98$ against a measurand confined to
 $[0,1]$ looks broken. It isn't; it was traced to a specific, reportable
 mechanism.
 
@@ -404,16 +414,16 @@ estimate} for this case study rather than LPU.
 $\pm 2u_c$ interval trivially contains the true value for essentially all
 953 test cycles (interval half-width $\gtrsim 1.3$ against a $[0,1]$
 measurand range). This is diagnostic of an \textbf{overestimated,
-single-channel-dominated Type A budget}, not a missing uncertainty source.
+single-channel-dominated $u_{\mathrm{physical}}$ budget}, not a missing uncertainty source.
 \end{itemize}
 
 \textbf{MC convergence check}, per Phase 5 reporting requirements --- one
 held-out test point re-evaluated at increasing $M$:
 
 \begin{verbatim}
-n_mc=10,000     u_A_mc = 9.1645e-01
-n_mc=100,000    u_A_mc = 9.3246e-01   (delta = 1.75% from 10k)
-n_mc=1,000,000  u_A_mc = 9.3171e-01   (delta = 0.08% from 100k)
+n_mc=10,000     u_physical_mc = 9.1645e-01
+n_mc=100,000    u_physical_mc = 9.3246e-01   (delta = 1.75% from 10k)
+n_mc=1,000,000  u_physical_mc = 9.3171e-01   (delta = 0.08% from 100k)
 \end{verbatim}
 
 $M=10^4$ is adequately converged (sub-2\% sampling noise) relative to the
@@ -439,23 +449,23 @@ scale is off. Neither holds here.
 \toprule
 Check & Value & Reading \\
 \midrule
-mean $u_c$ (MC-based) vs.\ mean $\lvert y_\text{true}-\hat y\rvert$ &
-$0.985$ vs.\ $0.046$ &
-\textbf{$u_c$ is $\sim$14$\times$ larger than the actual mean error} ---
+mean $u_c$ vs.\ mean $\lvert y_\text{true}-\hat y\rvert$ &
+MC-based: $0.986$ vs.\ $0.046$; LPU-based (the CSV \texttt{u\_c} column): $0.644$ vs.\ $0.046$ &
+\textbf{$u_c$ is $\sim$21$\times$ (MC-based) or $\sim$14$\times$ (LPU-based) larger than the actual mean error} ---
 not calibrated, not conservative-but-reasonable \\
-Range of $u_A^{MC}$ across all 953 test cycles &
+Range of $u_{\mathrm{physical}}^{\mathrm{MC}}$ across all 953 test cycles &
 $0.792$--$1.194$ &
 Only a $1.5\times$ spread against a measurand of width 1 --- close to a
 fixed offset, not a per-cycle signal \\
-corr($u_A$, $y_\text{true}$) &
+corr($u_{\mathrm{physical}}$, $y_\text{true}$) &
 LPU $r{=}0.70$, MC $r{=}0.61$ &
 Uncertainty rises somewhat with age --- qualitatively right direction \\
 corr($u_c$, actual $\lvert\text{error}\rvert$) &
-$r{=}0.26$ &
+MC-based $r{=}0.15$, LPU-based $r{=}0.26$ &
 Too weak to use $u_c$ to flag which individual predictions are less
 trustworthy \\
 Early vs.\ late life (terciles of $y_\text{true}$) &
-mean $u_A^{MC}$: $0.933\!\to\!1.064$ (+14\%); mean $\lvert\text{err}\rvert$:
+mean $u_{\mathrm{physical}}^{\mathrm{MC}}$: $0.933\!\to\!1.064$ (+14\%); mean $\lvert\text{err}\rvert$:
 $0.033\!\to\!0.056$ (+70\%) &
 Both trend upward with age, but $u_c$ under-reacts relative to how much
 error actually grows \\
@@ -488,8 +498,8 @@ $R^2$ & $0.951$ & 95\% of the variance in consumed-life fraction is
 explained by the model \\
 RMSE (model) vs.\ RMSE (naive, predict mean $\bar y$) & $0.064$ vs.\ $0.291$
 & \textbf{$4.5\times$ improvement} over a zero-information baseline \\
-Median $\lvert\text{error}\rvert$ & $0.046$ & $\sim$4.6\% of full life
-range, typical case \\
+Mean / median $\lvert\text{error}\rvert$ & $0.046$ / $0.033$ & $\sim$4.6\% (mean) and
+$\sim$3.3\% (median) of the full life range \\
 90th-percentile / max $\lvert\text{error}\rvert$ & $0.101$ / $0.365$ & Tail
 error exists --- exactly what a \emph{calibrated} $u_c$ should flag, and
 currently doesn't \\
@@ -512,7 +522,7 @@ and only needs the point estimate's relative movement to be right, which
 $R^2=0.951$ supports.
 \item \textbf{Threshold-crossing alerts} --- a rule such as ``flag once
 $\hat y_k>0.9$'' has an expected timing error bounded by the point
-estimate's typical error ($\sim$4.6\% of life), not by the inflated $u_c$.
+estimate's typical error (mean $\sim$4.6\%, median $\sim$3.3\% of life), not by the inflated $u_c$.
 \item \textbf{Cross-unit ranking} --- comparing which of several machines
 is closer to end-of-life only requires consistent relative ordering of
 $\hat y_k$, which a global miscalibration in $u_c$ does not disturb.
@@ -550,7 +560,7 @@ adequately converged \\
 \texttt{case\allowbreak\_study\allowbreak\_A\allowbreak\_results.csv} ---
 
 \begin{itemize}
-\item[(a)] scatter of $u_A^{LPU}$ vs.\ $u_A^{MC}$ per test cycle with the
+\item[(a)] scatter of $u_{\mathrm{physical}}^{\mathrm{LPU}}$ vs.\ $u_{\mathrm{physical}}^{\mathrm{MC}}$ per test cycle with the
 identity line; points sit visibly off-diagonal, consistent with the 36.5\%
 median disagreement;
 \item[(b)] predictions with $\pm k{=}2\,u_c$ band vs.\ ground truth over the
@@ -561,7 +571,7 @@ coverage annotated.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.95\textwidth]{zema_lpu_vs_mc.pdf}
-\caption{Left: analytical LPU vs.\ Monte Carlo estimates of $u_A$ per
+\caption{Left: analytical LPU vs.\ Monte Carlo estimates of $u_{\mathrm{physical}}$ per
 held-out test cycle, with the identity line and median relative difference
 annotated. Right: predictions with the $\pm k{=}2\,u_c$ expanded-uncertainty
 band vs.\ ground truth over the held-out cycles, sorted by true
@@ -588,19 +598,19 @@ python make_validation_figure.py --csv case_study_A_results.csv \
 \toprule
 Source & Type & $u$ & Sensitivity / notes \\
 \midrule
-Sensor input (11 channels) & A & $0.984$\footnotemark[1] &
+$u_{\mathrm{physical}}$ --- sensor input (11 channels) & A & $0.984$\footnotemark[1] &
 Pressure 51.8\%, Velocity 25.2\%, Acceleration-$x$ 11.5\% (88.5\% combined) \\
-Training process (10-seed ensemble) & B & $0.049$ &
+$u_{\mathrm{training}}$ --- training process (10-seed ensemble) & A & $0.049$ &
 Optimization variance only, architecture excluded \\
-Architecture selection & B & excluded &
+$u_{\mathrm{architecture}}$ --- architecture selection & --- & excluded &
 Held fixed: (128,64,32), softplus \\
 Generalization / distribution shift & B & --- &
 Assessed via coverage; no missing-source signal \\
 Label (RUL definition) & --- & negligible &
 Deterministic, $y_k=k/N$ \\
 \midrule
-\textbf{Combined} & --- & $\mathbf{0.985}$ &
-Dominated by Type A, itself dominated by the Pressure channel \\
+\textbf{Combined} $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ & --- & $\mathbf{0.985}$ &
+Dominated by $u_{\mathrm{physical}}$, itself dominated by the Pressure channel \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -629,7 +639,7 @@ report follows \\
 (\texttt{zema\_\allowbreak emc\_\allowbreak annotated==0.7.1}, \texttt{torch==2.13.0},
 \texttt{numpy==1.26.4}, \texttt{matplotlib==3.10.9}) for exact reproduction \\
 \texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak results.csv} & Real output, 953 test cycles
-$\times$ 7 columns (\texttt{y\_true, y\_hat, u\_A\_lpu, u\_A\_mc, u\_B,
+$\times$ 7 columns (\texttt{y\_true, y\_hat, u\_\allowbreak physical\_\allowbreak lpu, u\_\allowbreak physical\_\allowbreak mc, u\_\allowbreak training,
 u\_c, covered\_k2}) \\
 \texttt{make\_\allowbreak validation\_\allowbreak figure.py} & Generates
 \texttt{zema\_\allowbreak lpu\_\allowbreak vs\_\allowbreak mc.pdf} from the results CSV (colorblind-safe,
@@ -689,14 +699,16 @@ three-phase motor current, pressure, sound pressure, velocity).
 \end{verbatim}
 
 \paragraph{LPU vs.\ MC sentence:}
+{\small
 \begin{verbatim}
-Across the held-out cycles, the analytical and Monte Carlo estimates of $u_A$
-agreed to within $36.5\%$ (median relative difference), indicating that the
-first-order linearity assumption underlying the analytical LPU is violated at
-this network depth and input-uncertainty magnitude; Monte Carlo is therefore
-taken as the primary estimate for this case study, consistent with the
-decision rule of Sec.~\ref{sec:methodology}.
+Across the held-out cycles, the analytical and Monte Carlo estimates of
+$u_{\mathrm{physical}}$ agreed to within $36.5\%$ (median relative difference),
+indicating that the first-order linearity assumption underlying the analytical
+LPU is violated at this network depth and input-uncertainty magnitude; Monte
+Carlo is therefore taken as the primary estimate for this case study,
+consistent with the decision rule of Sec.~\ref{sec:methodology}.
 \end{verbatim}
+}
 
 \paragraph{Coverage sentence:}
 \begin{verbatim}
@@ -713,6 +725,7 @@ $[0,1]$ measurand range requires for informative intervals.
 \end{verbatim}
 
 \paragraph{Reporting/assumptions statement (Phase 5):}
+{\small
 \begin{verbatim}
 We report the following assumptions and settings explicitly. The input
 covariance matrix $U_x$ is taken as diagonal, $U_x = \mathrm{diag}(u^2(x_i))$,
@@ -723,10 +736,11 @@ uncertainty is negligible by construction, as the consumed-lifetime fraction
 $y_k = k/N$ is defined deterministically from the cycle index. Monte Carlo
 propagation followed GUM Supplement~1 (JCGM 101:2008) with Gaussian input
 distributions and $M = 10^4$ samples; convergence was verified by re-running
-a held-out sample at $M = 10^5$ and $M = 10^6$, with $u_A^{\text{MC}}$ moving
-by $1.75\%$ and $0.08\%$ respectively, both far smaller than the $36.5\%$
-LPU/MC gap.
+a held-out sample at $M = 10^5$ and $M = 10^6$, with
+$u_{\mathrm{physical}}^{\mathrm{MC}}$ moving by $1.75\%$ and $0.08\%$
+respectively, both far smaller than the $36.5\%$ LPU/MC gap.
 \end{verbatim}
+}
 
 \paragraph{Table \texttt{\textbackslash ref\{tab:zema\_uncertainty\_budget\}}:}
 {\footnotesize
@@ -739,20 +753,23 @@ LPU/MC gap.
 \toprule
 Source & Type & $u$ & Sensitivity / notes \\
 \midrule
-Sensor input (11 channels) & A & $0.984$ & Pressure 51.8\%, Velocity 25.2\%, \\
+$u_{\mathrm{physical}}$. Sensor input uncertainty (11 channels)
+ & A & $0.984$ & Pressure 51.8\%, Velocity 25.2\%, \\
  & & & Acceleration-x 11.5\% \\
-Training process (10-seed ensemble) & B & $0.049$ & optimization variance only \\
-Architecture selection & B & excluded & held fixed (128,64,32; softplus) \\
-Generalization / distribution shift & B & \textemdash & assessed via coverage (Sec.~\ref{sec:...}) \\
+$u_{\mathrm{training}}$. Training process variability (10-seed ensemble)
+ & A & $0.049$ & optimization variance only \\
+Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
+Generalization / distribution shift & B & \textemdash &
+ assessed via coverage (Sec.~\ref{sec:...}) \\
 Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
 \midrule
-Combined & \textemdash & $\mathbf{0.985}$ & dominated by Type A \\
+Combined & \textemdash & $\mathbf{0.985}$ & dominated by $u_{\mathrm{physical}}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The reported $u_A$ is the Monte Carlo estimate, taken as primary per the
-Phase~5 decision rule: the analytical LPU gives $u_A = 0.641$, a median
+The reported $u_{\mathrm{physical}}$ is the Monte Carlo estimate, taken as primary per the
+Phase~5 decision rule: the analytical LPU gives $u_{\mathrm{physical}} = 0.641$, a median
 relative difference of 36.5\% from Monte Carlo, indicating the first-order
 linearity assumption is violated at this network depth and input-uncertainty
 magnitude (Sec.~\ref{sec:...validation}).

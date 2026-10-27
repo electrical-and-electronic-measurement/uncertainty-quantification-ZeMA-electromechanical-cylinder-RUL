@@ -5,8 +5,9 @@ doi:10.5281/zenodo.5185953).
 
 Implements the 5-phase methodology of the paper:
   Phase 1: regression task, measurand = consumed-lifetime fraction (proxy for RUL)
-  Phase 2: Type A input uncertainties from the annotated dataset;
-           Type B model uncertainty from a seed ensemble
+  Phase 2: u_physical -- input uncertainties from the annotated dataset,
+           propagated through the model;
+           u_training -- model uncertainty from a seed ensemble
   Phase 3: white-box MLP + softplus (C^1) -> analytical LPU applicable
   Phase 4: layer-wise LPU (Eq. LPU-for-NN in the paper) + quadrature combination
   Phase 5: LPU vs Monte Carlo comparison + empirical coverage on held-out cycles
@@ -21,7 +22,7 @@ Notes
   library pins older torch versions; the implementation below follows the same
   layer-wise formula U_{x(i)} = H W U_{x(i-1)} W^T H and is validated against
   Monte Carlo in `self_test_lpu()` (run with --self-test, no dataset needed).
-* First run downloads ~200 MB from Zenodo into ~/.cache (handled by
+* First run downloads ~2.7 GB from Zenodo into ~/.cache (handled by
   zema_emc_annotated).
 """
 
@@ -45,7 +46,7 @@ class Config:
     datapoints_per_cycle: int = 100  # readings per sensor -> input dim = 11*100
     hidden: tuple = (128, 64, 32)
     activation: str = "softplus"  # C^1 -> LPU-compatible (paper Sec. 2.2)
-    n_ensemble: int = 10          # seeds for Type B (training-process) uncertainty
+    n_ensemble: int = 10          # seeds for u_training (training-process uncertainty)
     n_mc: int = 10_000            # GUM Supplement 1 samples for validation
     test_fraction: float = 0.2
     epochs: int = 200
@@ -54,7 +55,7 @@ class Config:
 
 
 # ----------------------------------------------------------------------------
-# Phase 1+2 -- data loading: values, Type A uncertainties, target definition
+# Phase 1+2 -- data loading: values, input uncertainties, target definition
 # ----------------------------------------------------------------------------
 
 def load_zema(cfg: Config):
@@ -209,7 +210,7 @@ def main(cfg: Config):
     mean, std = X[tr].mean(0), X[tr].std(0) + 1e-12
     Xn, UXn = normalize_with_uncertainty(X, UX, mean, std)
 
-    # ---- Type B: seed ensemble (training-process uncertainty) ----
+    # ---- u_training: seed ensemble (training-process uncertainty) ----
     models, preds_te = [], []
     for s in range(cfg.n_ensemble):
         m = make_mlp(Xn.shape[1], cfg)
@@ -219,33 +220,36 @@ def main(cfg: Config):
             preds_te.append(
                 m(torch.tensor(Xn[te], dtype=torch.float64)).squeeze(1).numpy())
     preds_te = np.stack(preds_te)                # (n_ensemble, n_test)
-    u_B = preds_te.std(axis=0, ddof=1)           # per-sample Type B std. unc.
+    u_training = preds_te.std(axis=0, ddof=1)    # per-sample u_training (ensemble std.)
     model = models[0]                            # reference model for LPU/MC
 
-    # ---- Type A via LPU, validated against MC, on the test set ----
+    # ---- u_physical via LPU, validated against MC, on the test set ----
     rows = []
     for j, i in enumerate(te):
         x = torch.tensor(Xn[i], dtype=torch.float64)
         ux = torch.tensor(UXn[i], dtype=torch.float64)
         yhat, U_y = propagate_lpu(model, x, torch.diag(ux ** 2))
-        u_A = math.sqrt(U_y.item())
-        _, u_mc = propagate_mc(model, x, ux, cfg.n_mc, seed=j)
-        u_c = math.sqrt(u_A ** 2 + u_B[j] ** 2)
+        u_physical_lpu = math.sqrt(U_y.item())
+        _, u_physical_mc = propagate_mc(model, x, ux, cfg.n_mc, seed=j)
+        # u_c combines the LPU estimate; the MC-based combination would be
+        # sqrt(u_physical_mc**2 + u_training[j]**2)
+        u_c = math.sqrt(u_physical_lpu ** 2 + u_training[j] ** 2)
         covered = abs(y[i] - yhat.item()) <= 2 * u_c   # k=2 interval
-        rows.append((y[i], yhat.item(), u_A, u_mc, u_B[j], u_c, covered))
+        rows.append((y[i], yhat.item(), u_physical_lpu, u_physical_mc,
+                     u_training[j], u_c, covered))
 
     r = np.array(rows, dtype=float)
     rel_diff = np.abs(r[:, 2] - r[:, 3]) / r[:, 3]
     print("\n=== Case Study A results (fill Table/Fig in the paper) ===")
     print(f"test RMSE                  : {np.sqrt(np.mean((r[:,0]-r[:,1])**2)):.4f}")
-    print(f"mean u_A (LPU)             : {r[:,2].mean():.4e}")
-    print(f"mean u_A (Monte Carlo)     : {r[:,3].mean():.4e}")
+    print(f"mean u_physical (LPU)      : {r[:,2].mean():.4e}")
+    print(f"mean u_physical (MC)       : {r[:,3].mean():.4e}")
     print(f"LPU vs MC median rel. diff : {np.median(rel_diff):.2%}  (Phase 5 check)")
-    print(f"mean u_B (ensemble)        : {r[:,4].mean():.4e}")
+    print(f"mean u_training (ensemble) : {r[:,4].mean():.4e}")
     print(f"mean u_c (combined)        : {r[:,5].mean():.4e}")
     print(f"empirical coverage @ k=2   : {r[:,6].mean():.1%}  (target ~95%)")
     np.savetxt("case_study_A_results.csv", r, delimiter=",",
-               header="y_true,y_hat,u_A_lpu,u_A_mc,u_B,u_c,covered_k2")
+               header="y_true,y_hat,u_physical_lpu,u_physical_mc,u_training,u_c,covered_k2")
 
 
 if __name__ == "__main__":

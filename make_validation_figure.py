@@ -1,7 +1,7 @@
 r"""
 Two-panel validation figure for Case Study A (Section 5.1, fig:zema_lpu_vs_mc).
 
-Panel 1 (left)  : analytical LPU vs. Monte Carlo estimates of u_A, one point
+Panel 1 (left)  : analytical LPU vs. Monte Carlo estimates of u_physical, one point
                   per held-out test cycle, with the identity line and the
                   median relative difference annotated -- the Phase 5
                   "linearity assumption" check.
@@ -17,7 +17,7 @@ Usage
         --out zema_lpu_vs_mc.pdf
 
 Expects the CSV produced by case_study_A_analysis.py, with columns:
-    y_true, y_hat, u_A_lpu, u_A_mc, u_B, u_c, covered_k2
+    y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2
 
 Run with no arguments once case_study_A_results.csv exists in the working
 directory; it will write zema_lpu_vs_mc.pdf ready to \includegraphics into
@@ -43,7 +43,7 @@ C_BAND = "#D55E00"
 def load_results(csv_path: Path) -> dict[str, np.ndarray]:
     data = np.genfromtxt(csv_path, delimiter=",", names=True)
     cols = {name: data[name] for name in data.dtype.names}
-    required = {"y_true", "y_hat", "u_a_lpu", "u_a_mc", "u_b", "u_c", "covered_k2"}
+    required = {"y_true", "y_hat", "u_physical_lpu", "u_physical_mc", "u_training", "u_c", "covered_k2"}
     have = {c.lower() for c in cols}
     missing = required - have
     if missing:
@@ -57,7 +57,7 @@ def load_results(csv_path: Path) -> dict[str, np.ndarray]:
 
 def make_figure(d: dict[str, np.ndarray], out_path: Path) -> None:
     y_true, y_hat = d["y_true"], d["y_hat"]
-    u_lpu, u_mc, u_c = d["u_a_lpu"], d["u_a_mc"], d["u_c"]
+    u_lpu, u_mc, u_c = d["u_physical_lpu"], d["u_physical_mc"], d["u_c"]
     covered = d["covered_k2"].astype(bool)
 
     rel_diff = np.abs(u_lpu - u_mc) / u_mc
@@ -75,8 +75,8 @@ def make_figure(d: dict[str, np.ndarray], out_path: Path) -> None:
                 edgecolors="none", zorder=2, label="held-out test cycles")
     ax1.set_xlim(lo, hi)
     ax1.set_ylim(lo, hi)
-    ax1.set_xlabel(r"$u_A$ analytical LPU")
-    ax1.set_ylabel(r"$u_A$ Monte Carlo ($M \geq 10^4$)")
+    ax1.set_xlabel(r"$u_{physical}$ analytical LPU")
+    ax1.set_ylabel(r"$u_{physical}$ Monte Carlo ($M \geq 10^4$)")
     ax1.set_title("(a) Analytical vs. Monte Carlo propagation")
     ax1.set_aspect("equal", adjustable="box")
     ax1.legend(loc="upper left", frameon=False, fontsize=8)

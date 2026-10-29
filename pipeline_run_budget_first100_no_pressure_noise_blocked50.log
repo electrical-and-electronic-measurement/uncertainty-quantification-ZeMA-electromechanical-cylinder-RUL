@@ -1,0 +1,56 @@
+input dim 1000 (10 channels x 100, sampling 'first'); random model 'noise'
+split 'blocked' (blocks of 50, purge gap 5): train 2996, validation 600, test 950
+test cycles with a training neighbour: one side 0.0%, both sides 0.0%
+
+=== Random / systematic split of the declared u (share of u^2, mean over samples) ===
+  Acceleration plain bearing   u_n=   1.985  random  26.5%  systematic  73.5%  u_rand,n=1.0000
+  Acceleration piston rod      u_n=   0.659  random  45.6%  systematic  54.4%  u_rand,n=0.4449
+  Acceleration ball bearing    u_n=   0.860  random  98.7%  systematic   1.3%  u_rand,n=0.8597
+  Active current               u_n=   0.172  random 100.0%  systematic   0.0%  u_rand,n=0.1722
+  Axial force                  u_n=   0.213  random  17.8%  systematic  82.2%  u_rand,n=0.0900
+  Motor current phase 1        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0229
+  Motor current phase 2        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0225
+  Motor current phase 3        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0230
+  Sound pressure               u_n=   0.000  random 100.0%  systematic   0.0%  u_rand,n=0.0001
+  Velocity                     u_n=   4.333  random   6.2%  systematic  93.8%  u_rand,n=1.0000
+  seed 0 trained
+  seed 1 trained
+  seed 2 trained
+  seed 3 trained
+  seed 4 trained
+  seed 5 trained
+  seed 6 trained
+  seed 7 trained
+  seed 8 trained
+  seed 9 trained
+
+validation: RMSE 0.0755, rms u_training 0.0557, rms u_rand_mc 0.0959  ->  u_model 0.0000
+  propagated 200/950 test cycles
+  propagated 400/950 test cycles
+  propagated 600/950 test cycles
+  propagated 800/950 test cycles
+  propagated 950/950 test cycles
+
+=== Case Study A -- corrected budget [first100_no_pressure_noise_blocked50] ===
+test RMSE                          : 0.0813
+test R2                            : 0.9426
+mean u_rand (LPU)                  : 9.2080e-02
+mean u_rand (MC)                   : 9.5610e-02
+LPU vs MC median rel. diff (rand)  : 4.16%
+MC mean - f(x) (rand), mean |.|    : 4.4443e-02
+mean u_training                    : 4.7932e-02
+u_model (validation)               : 0.0000e+00
+mean u_c (same instrument, MC)     : 1.0841e-01
+mean u_sys (LPU / MC, transfer)    : 3.5580e-01 / 4.5483e-01
+mean u_c (transfer)                : 4.6875e-01
+mean u_indep (MC, original budget) : 3.3032e-01
+coverage @ k=2:
+  u_training only                  : 88.1%
+  u_rand + u_training              : 99.2%
+  u_c (rand + training + model)    : 99.2%   (target ~95%)
+  u_c_transfer                     : 100.0%
+  original budget (indep + train)  : 99.8%
+mean u_c / mean |error|            : 2.10
+corr(u_c, |error|)                 : 0.53
+
+wrote case_study_A_results_budget_first100_no_pressure_noise_blocked50.csv  (u_physical_* = random part, same-instrument use)

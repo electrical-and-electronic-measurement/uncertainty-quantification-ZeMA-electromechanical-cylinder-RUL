@@ -137,12 +137,56 @@ Details, sensitivity rankings and caveats in `case_study_A_report_fullwindow.md`
 
 ### 0. Environment setup
 
-`zema_emc_annotated` pins `numpy<2`, so use a dedicated virtual environment
-(Python 3.10 exactly — the pinned versions in `requirements.txt` were
-validated against 3.10.12):
+`zema_emc_annotated` pins `numpy<2`, and `numpy==1.26.4` has no wheels for
+Python ≥ 3.13, so use a dedicated virtual environment on **Python 3.10**
+(the pinned versions in `requirements.txt` were validated against 3.10.12;
+3.13+ is known to fail to install).
+
+The recommended way is [uv](https://docs.astral.sh/uv/), which downloads the
+required Python version automatically if it is not installed, so no system-wide
+Python 3.10 is needed. Name the environment `.venv` (picked up automatically by
+VS Code).
+
+Install uv (once):
 
 ```bash
-python3.10 -m venv zema_env && source zema_env/bin/activate
+# Windows (PowerShell)
+winget install --id astral-sh.uv
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Create the environment and install the dependencies:
+
+```bash
+uv venv --python 3.10 .venv
+
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
+# macOS / Linux
+source .venv/bin/activate
+
+uv pip install -r requirements.txt
+```
+
+Without activating the environment, point uv at the interpreter explicitly:
+
+```bash
+# Windows
+uv pip install --python .\.venv\Scripts\python.exe -r requirements.txt
+# macOS / Linux
+uv pip install --python .venv/bin/python -r requirements.txt
+```
+
+Use `uv venv --python 3.10 --clear .venv` to recreate an existing `.venv` that
+was built with the wrong Python version. In VS Code, select `.venv` as the
+interpreter / notebook kernel.
+
+Plain `venv` + `pip` also works if Python 3.10 is already installed:
+
+```bash
+python3.10 -m venv .venv
+# activate as above, then:
 pip install -r requirements.txt
 ```
 

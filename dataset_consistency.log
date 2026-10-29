@@ -1,0 +1,121 @@
+file: /Users/emanuelebuchicchio/Library/Caches/pooch/394da54b1fc044fc498d60367c4e292d-axis11_2kHz_ZeMA_PTB_SI.h5  (2.67 GB)
+
+=== Root metadata ===
+Experiment: {
+    "date":"2021-03-29/2021-04-15",
+    "DUT":"Festo ESBF cylinder",
+    "identifier":"axis11",
+    "label":"Electromechanical cylinder no. 11"
+}
+Person: {
+    "dc:author":[
+        "Tanja Dorst",
+        "Maximilian Gruber",
+        "Anupam Prasad Vedurmudi"
+    ],
+    "e-mail":[
+        "t.dorst@zema.de",
+        "maximilian.gruber@ptb.de",
+        "anupam.vedurmudi@ptb.de"
+    ],
+    "affiliation":[
+        "ZeMA gGmbH",
+        "Physikalisch-Technische Bundesanstalt",
+        "Physikalisch-Technische Bundesanstalt"
+    ]
+}
+Project: {
+    "fullTitle":"Metrology for the Factory of the Future",
+    "acronym":"Met4FoF",
+    "websiteLink":"www.met4fof.eu",
+    "fundingSource":"European Commission (EC)",
+    "fundingAdministrator":"EURAMET",
+    "funding programme":"EMPIR",
+    "fundingNumber":"17IND12",
+    "acknowledgementText":"This work has received funding within the project 17IND12 Met4FoF from the EMPIR program co-financed by the Participating States and from the European Union's Horizon 2020 research and innovation program. The authors want to thank Clifford Brown, Daniel Hutzschenreuter, Holger Israel, Giacomo Lanza, Bj\u00f6rn Ludwig, and Julia Neumann fromPhysikalisch-Technische Bundesanstalt (PTB) for their helpful suggestions and support."
+}
+Publication: {
+    "dc:identifier":"10.5281/zenodo.5185953",
+    "dc:license":"Creative Commons Attribution 4.0 International (CC-BY-4.0)",
+    "dc:title":"Sensor data set of one electromechanical cylinder at ZeMA testbed (ZeMA DAQ and Smart-Up Unit)",
+    "dc:description":"The data set was generated with two different measurement systems at the ZeMA testbed. The ZeMA DAQ unit consists of 11 sensors and the SmartUp-Unit has 13 differentsignals. A typical working cycle lasts 2.8s and consists of a forward stroke, a waiting time and a return stroke of the electromechanical cylinder. The data set does not consist of the entire working cycles. Only one second of the return stroke of every 100rd working cycle is included. The dataset consists of 4776 cycles. One row represents one second of the return stroke of one working cycle.",
+    "dc:subject":[
+        "dynamic measurement",
+        "measurement uncertainty",
+        "sensor network",
+        "digital sensors",
+        "MEMS",
+        "machine learning",
+        "European Union (EU)",
+        "Horizon 2020",
+        "EMPIR"
+    ],
+    "dc:SizeOrDuration":"24 sensors, 4776 cycles and 2000 datapoints each",
+    "dc:type":"Dataset",
+    "dc:issued":"2021-09-10",
+    "dc:bibliographicCitation":"T. Dorst, M. Gruber and A. P. Vedurmudi : Sensor data set of one electromechanical cylinder at ZeMA testbed (ZeMA DAQ and Smart-Up Unit), Zenodo [data set], https://doi.org/10.5281/zenodo.5185953, 2021."
+}
+
+=== Channel inventory ===
+group | label | sensor | unit | shape | min | max | mean | std | uncertainty | u/s | NaN/Inf
+PTB_SUU/BMA_280/Acceleration | X acceleration | BMA 280 | "\\metre\\second\\tothe{-2}" | (3, 1000, 4766) | -129.3 | 147.1 | 0.02219 | 1.475 | time-varying 0.0847..1.56 (median 0.0951) | 0.0793 | 0
+PTB_SUU/BMA_280/Acceleration | Y acceleration | BMA 280 | "\\metre\\second\\tothe{-2}" | (3, 1000, 4766) | -117.2 | 132.5 | 0.8524 | 2.077 | time-varying 0.0847..1.56 (median 0.0951) | 0.0482 | 0
+PTB_SUU/BMA_280/Acceleration | Z acceleration | BMA 280 | "\\metre\\second\\tothe{-2}" | (3, 1000, 4766) | -109.4 | 78.91 | 10.34 | 1.361 | time-varying 0.0847..1.56 (median 0.0951) | 0.0778 | 0
+PTB_SUU/MPU_9250/Acceleration | X acceleration | MPU 9250 | "\\metre\\second\\tothe{-2}" | (3, 1000, 4766) | -6.758 | 41.41 | 0.1925 | 0.8652 | time-varying 0.0427..0.646 (median 0.0473) | 0.0587 | 0
+PTB_SUU/MPU_9250/Acceleration | Y acceleration | MPU 9250 | "\\metre\\second\\tothe{-2}" | (3, 1000, 4766) | -8.529 | 26.61 | 0.3003 | 0.6651 | time-varying 0.0427..0.646 (median 0.0473) | 0.104 | 0
+PTB_SUU/MPU_9250/Acceleration | Z acceleration | MPU 9250 | "\\metre\\second\\tothe{-2}" | (3, 1000, 4766) | -14.55 | 54.71 | -9.412 | 0.6258 | time-varying 0.0427..0.646 (median 0.0473) | 0.102 | 0
+PTB_SUU/MPU_9250/Angular_Velocity | X angular velocity | MPU 9250 | "\\radian\\second\\tothe{-1}" | (3, 1000, 4766) | -2.266 | 0.2253 | -0.0142 | 0.02827 | time-varying 0.0427..0.646 (median 0.0473) | 1.83 | 0
+PTB_SUU/MPU_9250/Angular_Velocity | Y angular velocity | MPU 9250 | "\\radian\\second\\tothe{-1}" | (3, 1000, 4766) | -0.397 | 0.1713 | -0.02192 | 0.024 | time-varying 0.0427..0.646 (median 0.0473) | 2.12 | 0
+PTB_SUU/MPU_9250/Angular_Velocity | Z angular velocity | MPU 9250 | "\\radian\\second\\tothe{-1}" | (3, 1000, 4766) | -28.08 | 87.03 | -0.00803 | 0.6901 | time-varying 0.0427..0.646 (median 0.0473) | 0.106 | 0
+PTB_SUU/MPU_9250/Magnetic_Flux_Density | X magnetic flux density | MPU 9250 | "\\micro\\tesla" | (3, 1000, 4766) | -102.8 | -66.94 | -72.89 | 1.184 | time-varying 0.0427..0.646 (median 0.0473) | 0.046 | 0
+PTB_SUU/MPU_9250/Magnetic_Flux_Density | Y magnetic flux density | MPU 9250 | "\\micro\\tesla" | (3, 1000, 4766) | -118.2 | 17.61 | 4.626 | 1.916 | time-varying 0.0427..0.646 (median 0.0473) | 0.0466 | 0
+PTB_SUU/MPU_9250/Magnetic_Flux_Density | Z magnetic flux density | MPU 9250 | "\\micro\\tesla" | (3, 1000, 4766) | -129.7 | 5.787 | -84.56 | 2.203 | time-varying 0.0427..0.646 (median 0.0473) | 0.0253 | 0
+PTB_SUU/MPU_9250/Temperature | Temperature | MPU 9250 | "\\degreeCelsius" | (1000, 4766) | 30.5 | 58.31 | 52.19 | 2.896 | time-varying 0.0427..0.646 (median 0.0473) | 0.0163 | 0
+ZeMA_DAQ/Acceleration | Acceleration plain bearing | Kistler 8712A5M1 | "\\metre\\second\\tothe{-2}" | (3, 2000, 4766) | -8.912 | 10.46 | 0.03372 | 1.612 | constant 2.832 | 1.89 | 0
+ZeMA_DAQ/Acceleration | Acceleration piston rod | Kistler 8704B50M1 | "\\metre\\second\\tothe{-2}" | (3, 2000, 4766) | -31.26 | 32.05 | -0.317 | 5.377 | constant 2.832 | 0.597 | 0
+ZeMA_DAQ/Acceleration | Acceleration ball bearing | Kistler 8704B50M1 | "\\metre\\second\\tothe{-2}" | (3, 2000, 4766) | -19.73 | 37.06 | 0.002468 | 3.873 | constant 2.832 | 0.909 | 0
+ZeMA_DAQ/Active_Current | Active current | Motorcontroller Festo CMMP-C10-11A-AS | "\\ampere" | (2000, 4766) | -5.061 | -1.261 | -3.235 | 0.3434 | relative 0.01 x |value| | 0.19 | 0
+ZeMA_DAQ/Force | Axial force | Lorenz K-25 | "\\kilo\\newton" | (2000, 4766) | 3.078 | 7.325 | 5.96 | 0.3591 | constant 0.01244 | 0.236 | 0
+ZeMA_DAQ/Motor_Current | Motor current phase 1 | Sensitec CMS 2005 | "\\ampere" | (3, 2000, 4766) | -6.547 | 6.821 | 0.041 | 3.297 | relative 0.015 x |value| | 0.0231 | 0
+ZeMA_DAQ/Motor_Current | Motor current phase 2 | Sensitec CMS 2005 | "\\ampere" | (3, 2000, 4766) | -6.688 | 7.215 | -0.0405 | 3.297 | relative 0.015 x |value| | 0.0235 | 0
+ZeMA_DAQ/Motor_Current | Motor current phase 3 | Sensitec CMS 2005 | "\\ampere" | (3, 2000, 4766) | -6.449 | 6.991 | 0.02395 | 3.277 | relative 0.015 x |value| | 0.0237 | 0
+ZeMA_DAQ/Pressure | Pneumatic pressure | Festo VPPM | "\\pascal" | (2000, 4766) | 4.958e+05 | 9.772e+05 | 8.635e+05 | 1.773e+04 | constant 1.683e+04 | 10.6 | 0
+ZeMA_DAQ/Sound_Pressure | Sound pressure | G.R.A.S. 46BE | "\\pascal" | (2000, 4766) | -3.359 | 2.981 | -0.1003 | 0.6372 | constant 2.788e-05 | 5.19e-05 | 0
+ZeMA_DAQ/Velocity | Velocity | Motorcontroller Festo CMMP-C10-11A-AS | "\\milli\\metre\\second\\tothe{-1}" | (2000, 4766) | -219.4 | -119.1 | -200.4 | 2.043 | relative 0.01 x |value| | 4.6 | 0
+
+=== Cycle count and duration ===
+cycles in arrays: 4766; expected from paper (51..476560 step 100): 4766; metadata dc:SizeOrDuration says 4776
+mean cycle period implied by paper duration: 2.930 s (nominal 2.8 s + ~0.1 s gap)
+one stored cycle every 4.88 min
+
+=== Operating point vs paper ===
+velocity median -200.4 mm/s (paper ~200.0)
+axial force per-cycle mean 5.88..6.00 kN, median 5.96, max sample 7.32 (paper 7.0 kN)
+pneumatic pressure mean 8.64 bar
+
+=== Within-window profile (mean over cycles, 20 blocks of 50 ms) ===
+Velocity [-199.914, -200.482, -200.446, -200.449, -200.453, -200.447, -200.445, -200.45, -200.449, -200.437, -200.421, -200.486, -200.459, -200.433, -200.436, -200.442, -200.441, -200.441, -200.443, -200.562]
+Force [5.345, 5.427, 5.488, 5.583, 5.645, 5.679, 5.743, 5.81, 5.843, 5.904, 6.109, 6.345, 6.201, 6.141, 6.164, 6.2, 6.263, 6.343, 6.429, 6.533]
+Pressure [832722.315, 840170.753, 842960.656, 846309.689, 849977.614, 852199.225, 854213.198, 857130.235, 859478.65, 861251.558, 865574.145, 875885.28, 879527.004, 875488.13, 874287.663, 875191.507, 877013.126, 879948.591, 883414.135, 887840.501]
+Active_Current [-2.888, -2.923, -2.958, -3.009, -3.04, -3.059, -3.102, -3.144, -3.165, -3.208, -3.341, -3.437, -3.358, -3.344, -3.365, -3.387, -3.423, -3.462, -3.51, -3.567]
+
+=== SUU checks ===
+MPU Acceleration[0] uncertainty identical to MPU acceleration X: True
+MPU Acceleration[1] uncertainty identical to MPU acceleration X: True
+MPU Acceleration[2] uncertainty identical to MPU acceleration X: True
+MPU Angular_Velocity[0] uncertainty identical to MPU acceleration X: True
+MPU Angular_Velocity[1] uncertainty identical to MPU acceleration X: True
+MPU Angular_Velocity[2] uncertainty identical to MPU acceleration X: True
+MPU Magnetic_Flux_Density[0] uncertainty identical to MPU acceleration X: True
+MPU Magnetic_Flux_Density[1] uncertainty identical to MPU acceleration X: True
+MPU Magnetic_Flux_Density[2] uncertainty identical to MPU acceleration X: True
+MPU Temperature[0] uncertainty identical to MPU acceleration X: True
+BMA X/Y/Z uncertainties identical: True
+cycle 51 median u: BMA 0.09457, MPU 0.0487 m/s^2 (paper App. A interpolation term: 0.002236)
+BMA_280: mean |a| = 10.401 m/s^2 (g = 9.807); corr of per-cycle RMS with Kistler plain bearing = 0.403
+MPU_9250: mean |a| = 9.424 m/s^2 (g = 9.807); corr of per-cycle RMS with Kistler plain bearing = 0.438
+MPU acc X fraction of equal consecutive samples: 0.0
+2nd-difference / std: magnetometer 0.366, accelerometer 0.909
+
+=== zema_emc_annotated extraction ===
+ZeMASamples(datapoints_per_cycle=100) == first 100 raw samples: True

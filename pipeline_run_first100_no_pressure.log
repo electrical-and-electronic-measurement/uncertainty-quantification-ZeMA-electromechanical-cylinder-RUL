@@ -1,0 +1,56 @@
+input dim 1000 = 10 channels x 100 samples (sampling 'first' of the 2000-sample window)
+excluded channels: Pneumatic pressure
+  seed 0 trained
+  seed 1 trained
+  seed 2 trained
+  seed 3 trained
+  seed 4 trained
+  seed 5 trained
+  seed 6 trained
+  seed 7 trained
+  seed 8 trained
+  seed 9 trained
+  propagated 200/953 test cycles
+  propagated 400/953 test cycles
+  propagated 600/953 test cycles
+  propagated 800/953 test cycles
+  propagated 953/953 test cycles
+
+=== Case Study A -- first100_no_pressure features (100 samples/channel): results ===
+test RMSE                  : 0.0655
+test R2                    : 0.9494
+mean u_physical (LPU)      : 2.6035e-01
+mean u_physical (MC)       : 3.1865e-01
+LPU vs MC median rel. diff : 20.69%  (Phase 5 check)
+mean u_training (ensemble) : 4.6863e-02
+mean u_c (combined, LPU)   : 2.6531e-01
+mean u_c (combined, MC)    : 3.2294e-01
+empirical coverage @ k=2   : 100.0%  (target ~95%)
+  (u_training only)        : 90.7%
+
+wrote case_study_A_results_first100_no_pressure.csv
+
+=== Sensitivity ranking (first-layer |W1|.u_n per channel) ===
+  Velocity                     width=100  u_n(mean)=  4.3447  share=52.3%
+  Acceleration plain bearing   width=100  u_n(mean)=  2.0201  share=23.9%
+  Acceleration ball bearing    width=100  u_n(mean)=  0.8631  share=10.3%
+  Acceleration piston rod      width=100  u_n(mean)=  0.6886  share=8.1%
+  Axial force                  width=100  u_n(mean)=  0.2216  share=2.6%
+  Active current               width=100  u_n(mean)=  0.1684  share=2.0%
+  Motor current phase 1        width=100  u_n(mean)=  0.0212  share=0.3%
+  Motor current phase 2        width=100  u_n(mean)=  0.0211  share=0.3%
+  Motor current phase 3        width=100  u_n(mean)=  0.0210  share=0.3%
+  Sound pressure               width=100  u_n(mean)=  0.0001  share=0.0%
+
+=== MC convergence check (held-out test point #0) ===
+  n_mc=   10,000   u_physical_mc = 3.057872e-01
+  n_mc=  100,000   u_physical_mc = 3.105711e-01
+  n_mc=1,000,000   u_physical_mc = 3.113738e-01
+  delta 10k->100k = 1.56%   delta 100k->1M = 0.26%
+
+=== Is u_c actionable? ===
+  mean u_c (LPU-based, CSV column) vs mean |error| : 0.2653 vs 0.0429  (6.2x)
+  corr(u_physical_mc, y_true) = 0.45
+  corr(u_c, |error|)          = 0.39
+  early-life mean u_physical_mc = 0.3061   late-life = 0.3389
+  early-life mean |error|       = 0.0311   late-life = 0.0546

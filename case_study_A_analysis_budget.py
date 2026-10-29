@@ -16,6 +16,11 @@ interpreted and combined:
              channel k from second differences of adjacent samples
              (Type A, robust MAD estimate; an upper bound as well, since
              signal curvature also contributes).
+     datasheet : as `noise`, further capped by the sensor noise floor from
+             the manufacturer's datasheet where one is published
+             (DATASHEET_NOISE). This covers the sensor only, not the rest of
+             the acquisition chain, so unlike the other two it is not an
+             upper bound for those channels.
 2. Same-instrument use (training and inference on the same sensors): a
    systematic error common to all cycles is an affine map per column,
    x' = a_j + b_j x, which the z-score normalization (m, s estimated on the
@@ -38,6 +43,7 @@ declared u, MC) is recomputed on the same model as u_indep_mc.
 Usage:
     python case_study_A_analysis_budget.py                       # baseline input, 'bound'
     python case_study_A_analysis_budget.py --random-model noise
+    python case_study_A_analysis_budget.py --random-model datasheet
     python case_study_A_analysis_budget.py --exclude "Pneumatic pressure"
     # writes case_study_A_results_budget_<variant>.csv (make_validation_figure.py-compatible)
 """
@@ -59,7 +65,19 @@ from case_study_A_analysis_fullwindow import (
 )
 
 VAL_FRACTION = 0.15
-RANDOM_MODELS = ("bound", "noise")
+RANDOM_MODELS = ("bound", "noise", "datasheet")
+G = 9.80665
+
+# Sensor noise floors (standard deviation, channel units) published by the manufacturer.
+# Kistler 8704B50M1: threshold 0.004 g rms (kistler.com product page; band not stated,
+# frequency range 0.5 Hz-10 kHz, wider than the 1 kHz Nyquist band of the 2 kHz data).
+# No noise specification is published for the Kistler 8712A5M1 (plain bearing), the
+# Festo VPPM (pressure: only accuracy/repeatability of the regulated pressure) or the
+# Festo CMMP-AS-C10-11A-P3 (velocity, active current), so those channels keep `noise`.
+DATASHEET_NOISE = {
+    "Acceleration piston rod": 0.004 * G,
+    "Acceleration ball bearing": 0.004 * G,
+}
 SPLITS = ("random", "blocked")
 
 
@@ -118,10 +136,15 @@ def split_uncertainty(X, UX, tr, spans, random_model):
     """Returns (U_rand, U_sys) in physical units, with U_rand^2 + U_sys^2 = UX^2."""
     s = X[tr].std(0)
     U_rand = np.minimum(UX, s)
-    if random_model == "noise":
+    if random_model in ("noise", "datasheet"):
         for name, sig in noise_floor(X[tr], spans).items():
             lo, hi = spans[name]
             U_rand[:, lo:hi] = np.minimum(U_rand[:, lo:hi], sig)
+    if random_model == "datasheet":
+        for name, sig in DATASHEET_NOISE.items():
+            if name in spans:
+                lo, hi = spans[name]
+                U_rand[:, lo:hi] = np.minimum(U_rand[:, lo:hi], sig)
     U_sys = np.sqrt(np.maximum(UX ** 2 - U_rand ** 2, 0.0))
     return U_rand, U_sys
 

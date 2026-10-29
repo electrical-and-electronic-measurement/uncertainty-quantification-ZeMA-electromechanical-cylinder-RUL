@@ -5,7 +5,8 @@ Dorst et al. 2022 (doi:10.1016/j.measen.2022.100376).
 
 Prints every number quoted in `case_study_A_dataset_report.md`:
 per-channel inventory (sensor, unit, range, statistics, uncertainty model,
-u/s ratio), metadata, cycle-count/duration checks, within-window profiles,
+u/s ratio), comparison with manufacturer specifications (DATASHEET),
+metadata, cycle-count/duration checks, within-window profiles,
 SUU-specific checks and the `zema_emc_annotated` extraction check.
 
 Usage:
@@ -35,6 +36,16 @@ PAPER = {  # values stated in Dorst et al. 2022 (pages as in the article)
     "interp_unc_cycle51": 2.236e-3,  # App. A, median sqrt(eq. A.2), m/s^2
 }
 
+G = 9.80665
+DATASHEET = {  # manufacturer values quoted in case_study_A_dataset_report.md §4.1
+    "kistler_8704B50M1_threshold_g": 0.004,  # kistler.com product page, g rms
+    "vppm_fs_bar": 10.0,                     # VPPM-6TA-L-1-F-0L10H (542222): range 0.1-10 bar
+    "vppm_overall_accuracy_pct_fs": 1.25,
+    "vppm_repeatability_pct_fs": 0.5,
+    "vppm_temp_coeff_pct_per_K": 0.04,
+    "cmmp_monitor_bits": 9,                  # CMMP-AS-C10-11A-P3 (551024): 2 outputs, +-10 V
+}
+
 
 def label_list(ds):
     s = ds.attrs["si:label"]
@@ -56,6 +67,40 @@ def uncertainty_model(v, u):
     if np.ptp(r) < 1e-9:
         return f"relative {np.median(r):.4g} x |value|"
     return f"time-varying {u.min():.3g}..{u.max():.3g} (median {np.median(u):.3g})"
+
+
+def datasheet_checks(f):
+    def s_cyc(v):
+        return np.median(v.std(axis=1))
+
+    g_acc = f["ZeMA_DAQ/Acceleration"]
+    acc_v, acc_u = g_acc["qudt:value"], g_acc["qudt:standardUncertainty"]
+    labels = label_list(acc_v)
+    sensors = json.loads(g_acc.attrs["sosa:madeBySensor"])
+    thr = DATASHEET["kistler_8704B50M1_threshold_g"] * G
+    for i, (lab, sens) in enumerate(zip(labels, sensors)):
+        u = float(np.unique(acc_u[i][()])[0])
+        s = s_cyc(acc_v[i][()])
+        line = f"  {lab} ({sens}): u = {u:.10f} m/s^2, u*sqrt(3) = {u * np.sqrt(3):.6f}, s = {s:.3f} m/s^2"
+        if "8704B50M1" in sens:
+            line += f", u/threshold = {u / thr:.1f}, threshold/s = {thr / s:.2%}"
+        print(line)
+
+    p = f["ZeMA_DAQ/Pressure/qudt:value"][()]
+    u_p = float(np.unique(f["ZeMA_DAQ/Pressure/qudt:standardUncertainty"][()])[0])
+    fs = DATASHEET["vppm_fs_bar"] * 1e5
+    rep = DATASHEET["vppm_repeatability_pct_fs"] / 100 * fs
+    tc = DATASHEET["vppm_temp_coeff_pct_per_K"] / 100
+    print(f"pressure: declared u = {u_p:.0f} Pa = {u_p / fs:.2%} FS "
+          f"(VPPM overall accuracy {DATASHEET['vppm_overall_accuracy_pct_fs']} %FS); s = {s_cyc(p):.0f} Pa")
+    print(f"  repeatability {DATASHEET['vppm_repeatability_pct_fs']} %FS as std (rectangular): "
+          f"+-half-width {rep / np.sqrt(3):.0f} Pa, full-width {rep / 2 / np.sqrt(3):.0f} Pa")
+    print(f"  temperature coefficient: {tc * fs:.0f} Pa/K (%FS), {tc * p.mean():.0f} Pa/K (% of mean reading)")
+
+    for q in ("Velocity", "Active_Current"):
+        v = f[f"ZeMA_DAQ/{q}/qudt:value"][()]
+        print(f"{q}: {np.unique(v).size} distinct values out of {v.size} "
+              f"(a {DATASHEET['cmmp_monitor_bits']}-bit monitor output would give {2 ** DATASHEET['cmmp_monitor_bits']} levels)")
 
 
 def main():
@@ -85,6 +130,9 @@ def main():
                       f"{v.min():.4g} | {v.max():.4g} | {v.mean():.4g} | {v.std():.4g} | "
                       f"{uncertainty_model(v, u)} | {np.median(u) / s_cyc:.3g} | "
                       f"{int((~np.isfinite(v)).sum() + (~np.isfinite(u)).sum())}")
+
+        print("\n=== Manufacturer specifications vs declared uncertainty ===")
+        datasheet_checks(f)
 
         print("\n=== Cycle count and duration ===")
         n = f["ZeMA_DAQ/Force/qudt:value"].shape[1]

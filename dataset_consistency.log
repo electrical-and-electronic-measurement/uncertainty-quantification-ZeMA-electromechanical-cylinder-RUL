@@ -83,6 +83,16 @@ ZeMA_DAQ/Pressure | Pneumatic pressure | Festo VPPM | "\\pascal" | (2000, 4766) 
 ZeMA_DAQ/Sound_Pressure | Sound pressure | G.R.A.S. 46BE | "\\pascal" | (2000, 4766) | -3.359 | 2.981 | -0.1003 | 0.6372 | constant 2.788e-05 | 5.19e-05 | 0
 ZeMA_DAQ/Velocity | Velocity | Motorcontroller Festo CMMP-C10-11A-AS | "\\milli\\metre\\second\\tothe{-1}" | (2000, 4766) | -219.4 | -119.1 | -200.4 | 2.043 | relative 0.01 x |value| | 4.6 | 0
 
+=== Manufacturer specifications vs declared uncertainty ===
+  Acceleration plain bearing (Kistler 8712A5M1): u = 2.8319030744 m/s^2, u*sqrt(3) = 4.905000, s = 1.499 m/s^2
+  Acceleration piston rod (Kistler 8704B50M1): u = 2.8319030744 m/s^2, u*sqrt(3) = 4.905000, s = 4.747 m/s^2, u/threshold = 72.2, threshold/s = 0.83%
+  Acceleration ball bearing (Kistler 8704B50M1): u = 2.8319030744 m/s^2, u*sqrt(3) = 4.905000, s = 3.116 m/s^2, u/threshold = 72.2, threshold/s = 1.26%
+pressure: declared u = 16833 Pa = 1.68% FS (VPPM overall accuracy 1.25 %FS); s = 1594 Pa
+  repeatability 0.5 %FS as std (rectangular): +-half-width 2887 Pa, full-width 1443 Pa
+  temperature coefficient: 400 Pa/K (%FS), 345 Pa/K (% of mean reading)
+Velocity: 9531998 distinct values out of 9532000 (a 9-bit monitor output would give 512 levels)
+Active_Current: 9532000 distinct values out of 9532000 (a 9-bit monitor output would give 512 levels)
+
 === Cycle count and duration ===
 cycles in arrays: 4766; expected from paper (51..476560 step 100): 4766; metadata dc:SizeOrDuration says 4776
 mean cycle period implied by paper duration: 2.930 s (nominal 2.8 s + ~0.1 s gap)

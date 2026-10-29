@@ -204,6 +204,8 @@ Legend: ✅ consistent · ⚠️ partially consistent or not verifiable · ❌ i
 5. **Pneumatic pressure (*u/s* ≈ 10) and velocity (*u/s* ≈ 5) dominate any propagated input uncertainty.** This is a property of the declared uncertainties, not of normalisation.
 6. **Within the 1 s window, load-related signals are not stationary** (+20% rise, step at ≈0.5 s). Features computed on part of the window, such as the first 50 ms returned by `ZeMASamples(datapoints_per_cycle=100)`, are not representative of the whole window.
 7. **Only one cylinder (axis11) is included.** Generalisation across devices cannot be assessed with this file.
+8. **Where *u* > *s*, most of the declared uncertainty must be systematic.** For a random component, *s*² = var(true) + *u*_rand², so *u*_rand ≤ *s*. For Pressure, Velocity and the plain-bearing accelerometer this leaves at least 98.7%, 93.9% and 74% of *u*² common to all cycles (first 100 samples, training cycles). A systematic error common to all cycles cancels in a z-score normalization fitted on the same instrument, so it should not be propagated as independent noise for same-instrument use; it matters only for transfer to another instrument. The dataset gives no repeatability or noise specification, so the random part can only be bounded from the data. See `case_study_A_report_budget.md`.
+9. **Consecutive cycles are nearly identical, and the label is the cycle index.** A random train/test split leaves a neighbouring cycle of almost every test cycle in training. Use a blocked split (whole blocks of consecutive cycles) as a check; for this dataset it raises the RMSE of the case-study MLP by only 5–16% (`case_study_A_report_budget.md` §3.2).
 
 ---
 

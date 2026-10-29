@@ -56,6 +56,19 @@ the first 50 ms does not help this MLP (decimation: RMSE 0.106; block means:
 0.083). Coverage stays at 100% in every variant, while `u_training` alone
 covers 90–94%. See `case_study_A_report_fullwindow.md`.
 
+**Corrected budget.** The original `u_physical` treats every declared input
+uncertainty as independent per-sample noise. The data show that most of it
+must be common to all cycles (`u > s` for Pressure, Velocity, plain-bearing
+acceleration), and a systematic error common to all cycles cancels exactly in
+the z-score normalization when the same instrument is used for training and
+inference. Splitting `u` into random and systematic parts, propagating only the
+random part, adding a validation-based `u_model` and combining with Monte Carlo
+gives `u_c ≈ 0.11–0.14` instead of ≈0.98. LPU and MC then agree within 4–6%,
+and `u_c` is 2.3–2.9× the mean error instead of 21×. Coverage at k=2 is
+still 99.5–99.9%, because the data-based estimates of the random part are upper
+bounds. The systematic part (≈0.76, or ≈0.38 without Pressure) is reported
+separately, for transfer to another instrument. See `case_study_A_report_budget.md`.
+
 ## Tools
 
 | File | Role |
@@ -76,6 +89,8 @@ covers 90–94%. See `case_study_A_report_fullwindow.md`.
 | [case_study_A_report_trimmed.md](case_study_A_report_trimmed.md) | Full execution report for the trimmed-feature variant, structured like `case_study_A_report.md`, with an explicit section-by-section comparison against the baseline (no-trim) results — including a notable finding the point-prediction-only comparison in `case_study_A_feature_trimming.ipynb` couldn't see: trimming reverses the sign of the (weak) age-vs-uncertainty correlation. |
 | [case_study_A_analysis_fullwindow.py](case_study_A_analysis_fullwindow.py) | CLI-runnable sibling of `case_study_A_analysis.py` (same imports, unmodified) that reads the HDF5 directly to choose which within-cycle samples feed the model — `--sampling centre` (decimation over the whole 1 s window, default), `first` (what `ZeMASamples` returns) or `blockmean` (block means, conservative fully-correlated uncertainty) — with `--n-points` and `--exclude <channel>` for channel ablations. Writes `case_study_A_results_<variant>.csv` plus the same diagnostics as the trimmed variant. |
 | [case_study_A_report_fullwindow.md](case_study_A_report_fullwindow.md) | Execution report for four variants (whole-window decimation with/without Pressure, first 100 samples without Pressure, whole-window block means), compared with the baseline and trimmed runs: per-channel `u/s` analysis, full uncertainty budget, sensitivity ranking, MC convergence, actionability checks and recommendation. |
+| [case_study_A_analysis_budget.py](case_study_A_analysis_budget.py) | Corrected uncertainty budget on the baseline model and test cycles: random/systematic split of the declared input uncertainty (`--random-model bound\|noise`, data-based upper bounds of the random part), random part propagated for same-instrument use (LPU + MC), systematic part propagated as a per-channel common shift for instrument transfer, `u_model` from a validation set, MC-based `u_c` and coverage; also recomputes the original budget for comparison. Supports `--exclude`, `--sampling`, `--n-points`. |
+| [case_study_A_report_budget.md](case_study_A_report_budget.md) | Execution report of the corrected budget (baseline input and without Pressure, both random models): why the original budget is not correct, method and verification, results, residual consistency check, recommendation. |
 | [case_study_A_eda.pdf](case_study_A_eda.pdf) / [case_study_A_eda_outliers.pdf](case_study_A_eda_outliers.pdf) / [case_study_A_feature_trimming.pdf](case_study_A_feature_trimming.pdf) / [case_study_A_run_analysis.pdf](case_study_A_run_analysis.pdf) | Rendered PDF exports of the four notebooks above, for sharing without a notebook environment. Regenerate with `python export_notebooks_to_pdf.py` after editing the notebooks. |
 | [export_notebooks_to_pdf.py](export_notebooks_to_pdf.py) | Renders the EDA notebooks to the PDFs above with wrapped code lines (plain `nbconvert --to webpdf` clips long lines). Needs `nbconvert` + `playwright` (`playwright install chromium`) on top of `requirements.txt`. |
 
@@ -90,6 +105,7 @@ covers 90–94%. See `case_study_A_report_fullwindow.md`.
 | [case_study_A_results_trimmed.csv](case_study_A_results_trimmed.csv) | Same schema as `case_study_A_results.csv`, but on the trimmed (1,084-dim) feature set — output of `case_study_A_analysis_trimmed.py`. |
 | [zema_lpu_vs_mc_trimmed.pdf](zema_lpu_vs_mc_trimmed.pdf) | The `fig:zema_lpu_vs_mc` validation figure for the trimmed-feature run. |
 | [pipeline_run_trimmed.log](pipeline_run_trimmed.log) | Captured stdout of the `case_study_A_analysis_trimmed.py` run behind `case_study_A_report_trimmed.md`. |
+| `case_study_A_results_budget_<variant>.csv` / `zema_lpu_vs_mc_budget_<variant>.pdf` / `pipeline_run_budget_<variant>.log` | Outputs of `case_study_A_analysis_budget.py` behind `case_study_A_report_budget.md`: `first100_bound`, `first100_noise`, `first100_no_pressure_bound`, `first100_no_pressure_noise`. The CSV keeps the 7 standard columns (`u_physical_*` = random part) plus `mc_bias, u_model, u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc`. |
 | `case_study_A_results_<variant>.csv` / `zema_lpu_vs_mc_<variant>.pdf` / `pipeline_run_<variant>.log` | Results CSV (same schema), validation figure and captured stdout of `case_study_A_analysis_fullwindow.py` for each variant behind `case_study_A_report_fullwindow.md`: `fullwindow`, `fullwindow_no_pressure`, `first100_no_pressure`, `blockmean`. |
 
 ### Synthetic (dev-only, not real results)

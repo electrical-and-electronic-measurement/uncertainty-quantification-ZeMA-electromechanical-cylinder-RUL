@@ -16,7 +16,7 @@ The published file matches the paper on everything that can be checked against i
 |---|---|---|
 | F1 | The metadata state **4776** cycles; the arrays hold **4766**, which is exactly what the paper's selection rule produces. 4776 is a typo. | Low |
 | F2 | The measured axial force (per-cycle mean 5.88–6.00 kN) is below the nominal **7 kN** load stated in the paper, and it is not constant within the window (it rises from 5.35 to 6.53 kN). | Medium |
-| F3 | The paper does not describe how the **ZeMA DAQ uncertainties** were obtained. In the file they are either a single constant per channel or an exact 1% / 1.5% of the reading, consistent with datasheet-based Type B values. | High (for metrological use) |
+| F3 | The paper does not describe how the **ZeMA DAQ uncertainties** were obtained. In the file they are either a single constant per channel or an exact 1% / 1.5% of the reading, consistent with datasheet-based Type B values. The manufacturer specifications support this (§4.1): the pressure value is of the order of the regulator's accuracy figures, and the accelerometer value is one generic tolerance (0.5 g/√3) applied to all three sensors, 72 times the published noise floor of the Kistler 8704B50M1. | High (for metrological use) |
 | F4 | The **SUU uncertainty arrays are duplicated across quantities**: the MPU 9250 acceleration, angular-velocity, magnetic-flux-density and temperature uncertainties are identical sample by sample, despite having different units. The three BMA 280 axes are also identical. | High |
 | F5 | The SUU uncertainty level (median 0.095 m/s² for the BMA 280, 0.049 m/s² for the MPU 9250 in cycle 51) is **20–40 times larger** than the interpolation-uncertainty term reported in the paper's Appendix A (2.236·10⁻³ m/s²). The two quantities are not necessarily the same: see §6.3. | Medium |
 
@@ -102,6 +102,26 @@ Statistics are computed over all 4766 cycles × 2000 samples. *u/s* is the media
 
 No Type A component, quantisation term or dynamic component is present.
 
+### 4.1 Manufacturer specifications
+
+The declared uncertainties were compared with the manufacturers' published specifications (retrieved October 2026). The comparison covers the sensors of the channels that dominate the propagated uncertainty; the Lorenz K-25, Sensitec CMS 2005 and G.R.A.S. 46BE were not checked. *s* is the cross-cycle standard deviation as in §4 (whole window).
+
+| Channel(s) | Sensor | Published specification | Comparison with the declared *u* |
+|---|---|---|---|
+| Acceleration piston rod, ball bearing | Kistler 8704B50M1: IEPE, ±50 g, 100 mV/g, 0.5 Hz–10 kHz (±5%) | **Threshold 0.004 g rms (0.039 m/s²)**; temperature coefficient of sensitivity −0.06 %/°C | *u* is 72 times the threshold; the threshold is 0.83% (piston rod) and 1.26% (ball bearing) of *s* |
+| Acceleration plain bearing | Kistler 8712A5M1 | No product page or datasheet found (Kistler website, distributors) | — |
+| Pneumatic pressure | Festo VPPM. The exact type is not in the metadata; readings up to 9.77 bar exclude the 2 and 6 bar ranges, so the 0–10 bar variant is assumed (VPPM-6TA-L-1-F-0L10H, part 542222) | Linearity 1 %FS (the same sheet also lists "linearity error 2 %FS"); hysteresis 0.5 %FS, max. 0.05 bar; reproducibility / repetition accuracy 0.5 %FS; overall accuracy 1.25 %FS; temperature coefficient 0.04 %/K | *u* = 16 833 Pa = 1.68 %FS, the same order as the accuracy figures. Repeatability as a standard uncertainty (rectangular): 2 887 Pa (±0.5 %FS) or 1 443 Pa (0.5 %FS total band), against *s* = 1 594 Pa |
+| Velocity, active current | Festo CMMP-AS-C10-11A-P3 motor controller (part 551024; metadata: "CMMP-C10-11A-AS") | No accuracy for speed or current. Two analog monitor outputs, ±10 V, **9 bit**; encoder input RS422 / EnDat 2.2 | The declared 1% of the reading has no counterpart in the datasheet |
+
+Observations:
+
+1. **The accelerometer value is a generic tolerance, not a per-sensor specification.** The three accelerometers carry the same constant *u* = 2.8319 m/s², although one is a ±5 g and two are ±50 g sensors. *u*·√3 = 4.905000 m/s² = 0.5 × 9.81 exactly: a rectangular distribution of half-width 0.5 g (1% of the ±50 g range), with g rounded to 9.81 m/s². This is inferred from the number; the derivation is not documented.
+2. **Only the Kistler 8704B50M1 has a noise specification.** It puts the random part of those two channels at about 1% of their cross-cycle spread, 47–72 times below the data-based estimates of `case_study_A_report_budget.md` §2.1, which therefore count genuine vibration as noise. The threshold covers the sensor only, not the PXIe-4492 channel and the cabling, and its bandwidth is not stated.
+3. **The pressure figures are accuracy specifications of a pressure regulator.** They describe the regulated output pressure and are largely systematic for a given unit; they are not a noise specification of the actual-value signal. Even the repeatability is of the order of *s* and well above the 268 Pa noise floor estimated from the data (`case_study_A_report_budget.md` §2.1), so it does not tighten the random part. The temperature coefficient (400 Pa/K referred to the full scale, 345 Pa/K referred to the mean reading) means that a few kelvin of ambient change over the 16.5-day test produce a drift of the order of *s*. Such a drift is not common to all cycles and does not cancel in a z-score normalization.
+4. **Velocity and active current were probably recorded through the two monitor outputs.** The controller has exactly two, and these are the only two controller channels; this is not documented, and the velocity scaling (mm/s per volt) is unknown. A 9-bit output has 512 levels, but the 2 kHz data contain 9 531 998 (velocity) and 9 532 000 (active current) distinct values out of 9 532 000: the downsampling filter has removed the quantization grid, so its step cannot be recovered from the file.
+
+Sources: [Kistler 8704B50M1 product page](https://www.kistler.com/INT/en/p/general-purpose-accelerometer-k-shear-8704b50m1/000000000018007041); Festo datasheets of [VPPM-6TA-L-1-F-0L10H (542222)](https://klefinghaus.de/datasheet/00542222.html) and [CMMP-AS-C10-11A-P3 (551024)](https://ftp.festo.com/Public/PNEUMATIC/SOFTWARE_SERVICE/DataSheet/DE_DE/551024.pdf).
+
 ---
 
 ## 5. Channel inventory — PTB SmartUp Unit (1 kHz after cubic interpolation, 1000 samples per cycle)
@@ -186,7 +206,7 @@ Legend: ✅ consistent · ⚠️ partially consistent or not verifiable · ❌ i
 | C14 | Axial load | 7 kN, constant pulling | per-cycle mean 5.88–6.00 kN (median 5.96); within-window rise 5.35 → 6.53 kN; maximum sample 7.32 kN | ❌ / ⚠️ (F2): lower than nominal and not constant |
 | C15 | Units | SI values; D-SI unit strings (SUU protocol) | D-SI `si:unit` on every group; values converted from ADC (`raw_data: false`) | ✅ (kN, mm/s and µT are SI-prefixed, not base units) |
 | C16 | Timestamps | ZeMA: none, assumed equidistant; SUU: GNSS absolute | no time datasets stored; implicit equidistant axis | ✅ (SUU absolute timestamps and trigger not published) |
-| C17 | ZeMA uncertainties | **not described** | constant or 1% / 1.5% relative values | ⚠️ not verifiable (F3) |
+| C17 | ZeMA uncertainties | **not described** | constant or 1% / 1.5% relative values | ⚠️ not verifiable (F3); compared with manufacturer specifications in §4.1 |
 | C18 | SUU uncertainty method | ½ LSB → interpolation (PyDynamic) → dynamic calibration (IIR, GUM-S2) | time-varying values, consistent with propagated uncertainty | ⚠️ method plausible, content not verifiable |
 | C19 | SUU uncertainty per quantity | evaluated per sensor/axis | identical arrays across 10 MPU signals with 4 units; identical across BMA axes | ❌ (F4) |
 | C20 | SUU uncertainty magnitude | App. A: median interpolation term 2.236·10⁻³ m/s² in cycle 51 | cycle 51 median 0.095 (BMA) / 0.049 (MPU) m/s² | ⚠️ (F5): 20–40× larger; stored components not specified |
@@ -204,7 +224,7 @@ Legend: ✅ consistent · ⚠️ partially consistent or not verifiable · ❌ i
 5. **Pneumatic pressure (*u/s* ≈ 10) and velocity (*u/s* ≈ 5) dominate any propagated input uncertainty.** This is a property of the declared uncertainties, not of normalisation.
 6. **Within the 1 s window, load-related signals are not stationary** (+20% rise, step at ≈0.5 s). Features computed on part of the window, such as the first 50 ms returned by `ZeMASamples(datapoints_per_cycle=100)`, are not representative of the whole window.
 7. **Only one cylinder (axis11) is included.** Generalisation across devices cannot be assessed with this file.
-8. **Where *u* > *s*, most of the declared uncertainty must be systematic.** For a random component, *s*² = var(true) + *u*_rand², so *u*_rand ≤ *s*. For Pressure, Velocity and the plain-bearing accelerometer this leaves at least 98.7%, 93.9% and 74% of *u*² common to all cycles (first 100 samples, training cycles). A systematic error common to all cycles cancels in a z-score normalization fitted on the same instrument, so it should not be propagated as independent noise for same-instrument use; it matters only for transfer to another instrument. The dataset gives no repeatability or noise specification, so the random part can only be bounded from the data. See `case_study_A_report_budget.md`.
+8. **Where *u* > *s*, most of the declared uncertainty must be systematic.** For a random component, *s*² = var(true) + *u*_rand², so *u*_rand ≤ *s*. For Pressure, Velocity and the plain-bearing accelerometer this leaves at least 98.7%, 93.9% and 74% of *u*² common to all cycles (first 100 samples, training cycles). A systematic error common to all cycles cancels in a z-score normalization fitted on the same instrument, so it should not be propagated as independent noise for same-instrument use; it matters only for transfer to another instrument. The dataset gives no repeatability or noise specification, and a manufacturer noise floor is published only for the Kistler 8704B50M1 (§4.1); for Pressure, Velocity and the plain-bearing accelerometer the random part can only be bounded from the data. See `case_study_A_report_budget.md`.
 9. **Consecutive cycles are nearly identical, and the label is the cycle index.** A random train/test split leaves a neighbouring cycle of almost every test cycle in training. Use a blocked split (whole blocks of consecutive cycles) as a check; for this dataset it raises the RMSE of the case-study MLP by only 5–16% (`case_study_A_report_budget.md` §3.2).
 
 ---
@@ -219,6 +239,7 @@ python check_dataset_consistency.py | tee dataset_consistency.log
 The script downloads or reuses the cached HDF5 (hash-checked against `zema_emc_annotated.ZEMA_DATASET_HASH`) and prints:
 - the root metadata;
 - the full channel inventory (§4–5);
+- the comparison with manufacturer specifications (§4.1; the published values are hard-coded in the script's `DATASHEET` table);
 - the cycle-count and duration checks;
 - the operating point;
 - the within-window profiles (§6.2);

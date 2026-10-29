@@ -102,6 +102,10 @@ For each held-out cycle the script computes, per test sample:
 
 Outputs land in `case_study_A_results.csv` with one row per test sample: `y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2`.
 
+> **Update (29 Oct 2026).** Two lessons from the execution:
+> - Before propagating, check each channel's declared *u* against its cross-cycle spread *s*. Where *u* > *s*, most of *u* is systematic; it cancels in the normalization for same-instrument use and must not be propagated as independent noise. `case_study_A_analysis_budget.py` splits *u* into random and systematic parts, propagates the random part, adds `u_model` from a validation set and reports the systematic part separately for transfer (`case_study_A_report_budget.md`).
+> - The CSV `u_c` of `case_study_A_analysis.py` combines the LPU value. If MC is primary, combine MC (the budget script does).
+
 **Populating the paper's uncertainty budget table.** Use the *mean over the test set* for each column, and add the sensitivity information: the dominant input channels can be extracted from the first-layer contribution `W(1) diag(u(x)) `— rank sensor channels by their summed absolute contribution and report the top 2–3 in the "Sensitivity" column (e.g., "axial force and pressure dominate"). That single addition turns the table from a formality into an actual diagnostic, which is the point the paper's Reporting section makes ("relative magnitudes of contributions identify dominant sources").
 
 ---
@@ -117,6 +121,10 @@ Three checks, all computed by the script:
 **Convergence of MC.** Verify `n_mc=10_000` suffices by re-running one sample at 100,000 and confirming `u_physical_mc` moves by ≪1%. One sentence in the paper ("convergence verified by...") satisfies the Phase-5 reporting requirement for the MC settings.
 
 **Figure for the paper** (`fig:zema_lpu_vs_mc`): a two-panel figure works well — left panel scatter of `u_physical_lpu` vs `u_physical_mc` with the identity line (visual linearity check); right panel predictions ±k=2 bands vs true consumed-life over the test cycles, with coverage annotated. Both are three lines of matplotlib from the CSV.
+
+**Split check (added after execution).** The label is the cycle index, and consecutive cycles are nearly identical, so a random split leaves a neighbour of almost every test cycle in training. Re-run with whole blocks of consecutive cycles held out (`case_study_A_analysis_budget.py --split blocked`) and report the change in RMSE and coverage. For this dataset RMSE rises by 5–16% and the budget conclusions do not change (`case_study_A_report_budget.md` §3.2).
+
+**Residual check (added after execution).** The test residuals bound the propagated random input uncertainty: √(mean(*e*²) − mean(*u*_training²)). If the computed value exceeds it, the input-uncertainty model overstates the random part, whatever the coverage.
 
 ---
 

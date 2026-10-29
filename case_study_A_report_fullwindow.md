@@ -4,6 +4,8 @@
 
 **Companion document to `case_study_A_report.md` and `case_study_A_report_trimmed.md`.** This report records four further executions of Case Study A that change only Phase 1 (which within-cycle samples, and which channels, feed the model). Architecture, training procedure, train/test split, normalization and propagation code are the same as the baseline run, via unmodified imports from `case_study_A_analysis.py`. It accompanies `case_study_A_analysis_fullwindow.py`, four results CSVs, four validation figures and four run logs (§9).
 
+> **Status update (29 Oct 2026).** The results below use the original budget (full declared input uncertainty propagated as independent noise, LPU-based CSV `u_c`). `case_study_A_report_budget.md` shows that most of the declared uncertainty of Pressure, Velocity and the plain-bearing accelerometer must be systematic and cancels in the normalization for same-instrument use. With the corrected budget, the first-100 input gives $u_c \approx 0.11$–$0.14$ with Pressure and $\approx 0.11$ without, and LPU/MC agree within 4–7%. Removing Pressure therefore matters much less for the same-instrument budget than §4–§7 suggest; it still halves the systematic part relevant for transfer to another instrument (0.77 → 0.38). A blocked split (budget report §3.2) confirms that the accuracy comparisons in §4 are not driven by neighbouring cycles in the training set (RMSE +5–16%).
+
 ---
 
 ## 1. Why these variants: the baseline uses only the first 50 ms of each cycle
@@ -55,6 +57,8 @@ All variants are produced by `case_study_A_analysis_fullwindow.py`, which reads 
 ## 3. Environment, data split, model
 
 Unchanged from the baseline (`case_study_A_report.md` §3–§6): same `requirements.txt` and `zema_env`, same `self_test_lpu()` gate, same seed-0 random split (the **same 953 held-out cycles** for every variant), MLP (128, 64, 32) softplus, Adam lr $10^{-3}$, 200 full-batch epochs, float64, 10-seed ensemble for $u_{\mathrm{training}}$, seed-0 model as reference for LPU/MC and the sensitivity ranking. Only the input dimension changes.
+
+*Update:* with the random split, 96% of the test cycles have a neighbouring cycle in the training set. Holding out whole blocks of 50 consecutive cycles raises RMSE from 0.066 to 0.074 (first 100 samples) and from 0.069 to 0.081 (without Pressure), with $R^2$ unchanged at 0.94–0.95 (`case_study_A_report_budget.md` §3.2).
 
 ---
 
@@ -138,6 +142,8 @@ Control A is the only variant that both shrinks the interval substantially and k
 2. **State explicitly that the inputs are the first 50 ms of the 1 s return-stroke window** (or move to a whole-window representation) — "100 readings per cycle" is otherwise misleading.
 3. **Do not switch to raw whole-window samples** with this MLP: neither decimation nor block means beat the first-50 ms input. A whole-window study should use spectral features.
 4. **Report the input-uncertainty provenance as a limitation**: the ZeMA DAQ uncertainties are not derived in Dorst et al. 2022, and their correlation structure (needed for any averaging) is undocumented.
+
+*Update:* recommendation 1 was based on the original budget. With the corrected budget (`case_study_A_report_budget.md`) the same-instrument $u_c$ is about the same with and without Pressure (0.110 vs 0.106 with the `noise` model), while the model without Pressure is slightly less accurate under the blocked split (RMSE 0.081 vs 0.074). Keeping all 11 channels and reporting the corrected budget is now the simpler choice; the no-pressure configuration remains useful when the model must be transferred to another instrument (systematic part 0.38 vs 0.77).
 
 ---
 

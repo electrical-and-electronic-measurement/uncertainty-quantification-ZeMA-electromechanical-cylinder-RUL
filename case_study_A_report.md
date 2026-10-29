@@ -4,6 +4,16 @@
 
 **Supplementary material for Section 5.** This document is a step-by-step record of the actual execution of Case Study A: what was run, on what data, with what versions, and what came out — including one methodologically significant finding (§7) that shapes how the results should be read. It is meant to accompany `case_study_A_analysis.py`, `case_study_A_results.csv`, and `zema_lpu_vs_mc.pdf` as supplementary material to the paper.
 
+> **Status update (29 Oct 2026).** The numbers in this report are still correct, but they describe the *original* budget. Later work changes how they should be read:
+>
+> 1. **Corrected budget** (`case_study_A_report_budget.md`). The original $u_{\mathrm{physical}}$ treats every declared input uncertainty as independent per-reading noise. For Pressure, Velocity and the plain-bearing accelerometer the declared $u$ exceeds the cross-cycle spread $s$, so at least 98.7%, 93.9% and 74% of $u^2$ must be common to all cycles (systematic). A systematic error common to all cycles cancels in the z-score when the same instrument is used for training and inference. Propagating only the random part and combining with Monte Carlo gives $u_c \approx 0.11$–$0.14$ instead of $0.985$. LPU and MC then agree within 4–7%, so the 36.5% gap in §7 is a consequence of the misinterpreted input uncertainty, not of the network depth. The systematic part ($\approx 0.77$) is reported separately, for transfer to another instrument.
+> 2. **The over-coverage diagnosis in §7 and §11 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9%, because the data-based estimates of the random part are upper bounds (the residuals allow at most 0.03–0.06, against 0.09–0.14 computed); $u_{\mathrm{model}}$ estimated on a validation set comes out 0.
+> 3. **Split check** (`case_study_A_report_budget.md` §3.2). The random split leaves a neighbouring cycle ($k\pm1$) of 96% of the test cycles in training. Holding out whole blocks of consecutive cycles raises RMSE by only 5–16% (0.066 → 0.070–0.077, $R^2$ 0.94–0.95): the point accuracy is not an artefact of the random split.
+> 4. **Inputs are the first 50 ms** of the 1 s return-stroke window, not 100 readings spread over the cycle (`case_study_A_report_fullwindow.md` §1).
+> 5. The CSV `u_c` and the coverage in §7–§8 combine the **LPU** value; the MC-based figures are given in the text.
+>
+> For the paper, use the revised text in §11.1 rather than the original paragraphs of §11.
+
 ---
 
 ## 1. Summary
@@ -17,7 +27,9 @@
 | Test set | 953 held-out cycles (20% of 4766, random split, seed 0) |
 | $u_{\mathrm{physical}}$ (input quantities) | Propagated analytically (LPU) and via Monte Carlo (GUM Supplement 1, $M=10^4$) |
 | $u_{\mathrm{training}}$ (model-related) | 10-seed training ensemble, evaluated statistically |
-| **Headline result** | LPU and MC disagree by a median **36.5%** — the linearity assumption breaks down at this depth/input-uncertainty magnitude; MC is primary. Coverage @ $k=2$ is **100%**, driven by one dominant, uncertainty-amplified sensor channel (Pressure), not a missing source. |
+| **Headline result** | LPU and MC disagree by a median **36.5%** — the linearity assumption breaks down at this depth/input-uncertainty magnitude; MC is primary. Coverage @ $k=2$ is **100%**, driven by one dominant, uncertainty-amplified sensor channel (Pressure), not a missing source. *(Original budget; superseded — see the status update above.)* |
+| Corrected budget (update) | Random part only, MC: $u_c = 0.110$–$0.136$, LPU/MC 4.7–6.3%, coverage @ $k=2$ 99.8–99.9%; systematic part for transfer $\approx 0.76$ (`case_study_A_report_budget.md`) |
+| Split check (update) | Blocked split, no test cycle adjacent to training: RMSE 0.070–0.077 vs. 0.066, $R^2$ 0.94–0.95 |
 
 **Notation.** $k$ indexes the test-to-failure cycle ($k=1,\dots,N$, with $N$ the total cycles run for the tested unit); $y_k = k/N \in [0,1]$ is the true, deterministically-assigned consumed-lifetime fraction at cycle $k$ (the measurand — see §4), with $\text{RUL}=1-y_k$.
 
@@ -284,6 +296,8 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 
 LaTeX source for this table, and the corresponding paper sentences for the LPU/MC, coverage, and reporting-statement paragraphs, are reproduced verbatim in §11 below.
 
+> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{model}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3 and in the revised table of §11.1.
+
 ---
 
 ## 10. Files in this supplementary package
@@ -392,6 +406,96 @@ Phase~5 decision rule: the analytical LPU gives $u_{\mathrm{physical}} = 0.641$,
 relative difference of 36.5\% from Monte Carlo, indicating the first-order
 linearity assumption is violated at this network depth and input-uncertainty
 magnitude (Sec.~\ref{sec:...validation}).
+```
+
+### 11.1 Revised paper-ready text (corrected budget, update 29 Oct 2026)
+
+The paragraphs above describe the original budget, and their coverage explanation is superseded (status update at the top). The text below uses the corrected budget of `case_study_A_report_budget.md`: baseline input (11 channels, first 100 samples), `noise` model for the random part, random split; the `bound` model and the blocked split are given as checks. The `noise` model is the tighter of the two upper bounds; choosing it, or the no-pressure configuration, is an authors' decision — swap in the numbers from `case_study_A_report_budget.md` §3 if needed.
+
+**Input-uncertainty interpretation:**
+```latex
+The dataset declares a single standard uncertainty $u$ per reading, without
+separating random and systematic components. For a random component the
+cross-cycle standard deviation $s$ of a reading satisfies
+$s^2 = \mathrm{var}(\text{true}) + u_{\mathrm{rand}}^2$, hence
+$u_{\mathrm{rand}} \le s$. For the pressure, velocity and plain-bearing
+acceleration channels $u/s$ is $8.8$, $4.3$ and $2.1$, so at least
+$98.7\%$, $93.9\%$ and $74\%$ of $u^2$ is common to all cycles. A systematic
+error common to all cycles is an affine map per reading, which the $z$-score
+normalization removes exactly when the same instrument is used for training
+and inference. We therefore propagate only the random part, estimated from
+the data as $u_{\mathrm{rand}} = \min(u, s, \sigma_k)$, with $\sigma_k$ the
+white-noise floor of channel $k$ from second differences of adjacent
+samples; both $s$ and $\sigma_k$ are upper bounds. The systematic part is
+propagated separately, as a shift common to all readings of a channel, and
+reported for transfer to another instrument.
+```
+
+**LPU vs. MC sentence:**
+```latex
+Across the held-out cycles, the analytical and Monte Carlo estimates of the
+propagated random input uncertainty agreed to within $4.7\%$ (median relative
+difference; $6.3\%$ with the looser bound $u_{\mathrm{rand}} = \min(u, s)$),
+so the first-order approximation is adequate at this input-uncertainty
+magnitude; the Monte Carlo value is used in the combination. With the full
+declared uncertainty propagated as independent noise the two methods
+disagreed by $36.5\%$, because perturbations of up to nine training-set
+standard deviations take the network far outside its training domain.
+```
+
+**Coverage sentence:**
+```latex
+The empirical coverage of the $k=2$ expanded interval was $99.8\%$
+($93.1\%$ at $k=1$) against the $\approx 95\%$ target, with
+$\bar u_c / \overline{|e|} = 2.3$. The over-coverage comes from the random
+input part: the test residuals allow at most $0.03$ of propagated random
+input uncertainty, against $0.10$ computed, and the model term estimated on a
+validation set, $u_{\mathrm{model}}^2 = \overline{e^2} -
+\overline{u_{\mathrm{training}}^2} - \overline{u_{\mathrm{rand}}^2}$, is
+therefore zero. A tighter estimate of the random part requires sensor noise
+data that the dataset does not provide. Holding out whole blocks of 50
+consecutive cycles, so that no test cycle is adjacent to a training cycle,
+gives RMSE $0.074$ (vs.\ $0.066$), $R^2 = 0.95$ and coverage $99.3\%$.
+```
+
+**Reporting/assumptions statement (Phase 5):**
+```latex
+The random part of the input uncertainty is taken as independent between
+readings, $U_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$; the systematic part
+as fully correlated within a channel and independent between channels.
+The systematic part is assumed constant over the whole run-to-failure
+experiment; a drift that varies with the cycle index would not cancel in the
+normalization and would be confounded with the measurand. Label uncertainty
+is negligible by construction ($y_k = k/N$). Monte Carlo propagation followed
+GUM Supplement~1 with Gaussian inputs and $M = 10^4$ samples. The point
+estimate is the network output $f(x)$; the Monte Carlo mean differs from it
+by $0.014$ on average.
+```
+
+**Table `\ref{tab:zema_uncertainty_budget}` (revised):**
+```latex
+\begin{table}[t]
+\centering
+\caption{Uncertainty budget for RUL estimation on the ZeMA cylinder dataset
+(mean over 953 held-out cycles; same instrument for training and inference).}
+\label{tab:zema_uncertainty_budget}
+\begin{tabular}{lccl}
+\toprule
+Source & Type & $u$ & Notes \\
+\midrule
+$u_{\mathrm{rand}}$. Random part of sensor input & A/B & $0.095$ & MC; LPU $0.091$ \\
+$u_{\mathrm{training}}$. Training process (10 seeds) & A & $0.051$ & optimization only \\
+$u_{\mathrm{model}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
+Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
+Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
+\midrule
+Combined $u_c$ & \textemdash & $\mathbf{0.110}$ & coverage $k{=}2$: $99.8\%$ \\
+\midrule
+$u_{\mathrm{sys}}$. Systematic part (transfer only) & B & $0.767$ & MC; mostly pressure \\
+Combined, transfer to another instrument & \textemdash & $0.776$ & \\
+\bottomrule
+\end{tabular}
+\end{table}
 ```
 
 ---

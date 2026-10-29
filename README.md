@@ -68,6 +68,9 @@ and `u_c` is 2.3–2.9× the mean error instead of 21×. Coverage at k=2 is
 still 99.5–99.9%, because the data-based estimates of the random part are upper
 bounds. The systematic part (≈0.76, or ≈0.38 without Pressure) is reported
 separately, for transfer to another instrument. See `case_study_A_report_budget.md`.
+A blocked split (whole blocks of consecutive cycles held out, so no test cycle
+has a training neighbour) raises RMSE by only 5–16% (R² 0.94–0.95) and leaves
+the budget conclusions unchanged (§3.2 of that report).
 
 ## Tools
 

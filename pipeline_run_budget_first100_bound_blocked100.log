@@ -1,0 +1,57 @@
+input dim 1100 (11 channels x 100, sampling 'first'); random model 'bound'
+split 'blocked' (blocks of 100, purge gap 5): train 3086, validation 600, test 1000
+test cycles with a training neighbour: one side 0.0%, both sides 0.0%
+
+=== Random / systematic split of the declared u (share of u^2, mean over samples) ===
+  Acceleration plain bearing   u_n=   1.979  random  27.2%  systematic  72.8%  u_rand,n=1.0000
+  Acceleration piston rod      u_n=   0.654  random  99.9%  systematic   0.1%  u_rand,n=0.6540
+  Acceleration ball bearing    u_n=   0.841  random  98.8%  systematic   1.2%  u_rand,n=0.8410
+  Active current               u_n=   0.171  random 100.0%  systematic   0.0%  u_rand,n=0.1707
+  Axial force                  u_n=   0.214  random 100.0%  systematic   0.0%  u_rand,n=0.2136
+  Motor current phase 1        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0234
+  Motor current phase 2        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0230
+  Motor current phase 3        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0235
+  Pneumatic pressure           u_n=   8.419  random   1.4%  systematic  98.6%  u_rand,n=1.0000
+  Sound pressure               u_n=   0.000  random 100.0%  systematic   0.0%  u_rand,n=0.0001
+  Velocity                     u_n=   4.275  random   6.3%  systematic  93.7%  u_rand,n=1.0000
+  seed 0 trained
+  seed 1 trained
+  seed 2 trained
+  seed 3 trained
+  seed 4 trained
+  seed 5 trained
+  seed 6 trained
+  seed 7 trained
+  seed 8 trained
+  seed 9 trained
+
+validation: RMSE 0.0672, rms u_training 0.0572, rms u_rand_mc 0.1175  ->  u_model 0.0000
+  propagated 200/1000 test cycles
+  propagated 400/1000 test cycles
+  propagated 600/1000 test cycles
+  propagated 800/1000 test cycles
+  propagated 1000/1000 test cycles
+
+=== Case Study A -- corrected budget [first100_bound_blocked100] ===
+test RMSE                          : 0.0695
+test R2                            : 0.9348
+mean u_rand (LPU)                  : 1.1037e-01
+mean u_rand (MC)                   : 1.1726e-01
+LPU vs MC median rel. diff (rand)  : 6.06%
+MC mean - f(x) (rand), mean |.|    : 2.3891e-02
+mean u_training                    : 5.2291e-02
+u_model (validation)               : 0.0000e+00
+mean u_c (same instrument, MC)     : 1.2992e-01
+mean u_sys (LPU / MC, transfer)    : 6.4135e-01 / 6.2541e-01
+mean u_c (transfer)                : 6.3931e-01
+mean u_indep (MC, original budget) : 9.0161e-01
+coverage @ k=2:
+  u_training only                  : 87.7%
+  u_rand + u_training              : 99.8%
+  u_c (rand + training + model)    : 99.8%   (target ~95%)
+  u_c_transfer                     : 100.0%
+  original budget (indep + train)  : 100.0%
+mean u_c / mean |error|            : 2.49
+corr(u_c, |error|)                 : 0.39
+
+wrote case_study_A_results_budget_first100_bound_blocked100.csv  (u_physical_* = random part, same-instrument use)

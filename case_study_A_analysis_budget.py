@@ -60,6 +60,44 @@ from case_study_A_analysis_fullwindow import (
 
 VAL_FRACTION = 0.15
 RANDOM_MODELS = ("bound", "noise")
+SPLITS = ("random", "blocked")
+
+
+def make_split(N, cfg: Config, split="random", block_size=50, gap=5):
+    """Returns (tr, va, te) cycle indices.
+
+    random  : the baseline split (same 953 test cycles as every earlier run).
+    blocked : contiguous blocks of `block_size` cycles are shuffled and assigned
+              whole to test / validation / training, so a test cycle no longer
+              has its immediate neighbours in the training set; training cycles
+              closer than `gap` to a test or validation cycle are dropped (purge).
+    """
+    rng = np.random.default_rng(cfg.seed)
+    if split == "random":
+        idx = rng.permutation(N)
+        n_test = int(cfg.test_fraction * N)
+        te, rest = idx[:n_test], idx[n_test:]
+        n_val = int(VAL_FRACTION * len(rest))
+        return rest[n_val:], rest[:n_val], te
+    blocks = [np.arange(lo, min(lo + block_size, N)) for lo in range(0, N, block_size)]
+    order = rng.permutation(len(blocks))
+    n_te_blocks = round(cfg.test_fraction * len(blocks))
+    n_va_blocks = round(VAL_FRACTION * (len(blocks) - n_te_blocks))
+    te = np.concatenate([blocks[b] for b in order[:n_te_blocks]])
+    va = np.concatenate([blocks[b] for b in order[n_te_blocks:n_te_blocks + n_va_blocks]])
+    tr = np.concatenate([blocks[b] for b in order[n_te_blocks + n_va_blocks:]])
+    held = np.zeros(N, dtype=bool)
+    held[te] = held[va] = True
+    near = np.convolve(held, np.ones(2 * gap + 1), mode="same") > 0
+    return tr[~near[tr]], np.sort(va), np.sort(te)
+
+
+def neighbour_leakage(tr, te):
+    """Share of test cycles with at least one / both adjacent cycles in training."""
+    t = set(tr.tolist())
+    one = np.mean([(i - 1 in t) or (i + 1 in t) for i in te])
+    both = np.mean([(i - 1 in t) and (i + 1 in t) for i in te])
+    return one, both
 
 
 def noise_floor(X, spans):
@@ -130,23 +168,24 @@ def budget_rows(model, Xn, URn, USn, UXn, idx, u_training, spans, cfg, with_extr
     return np.array(rows, dtype=float)
 
 
-def main_budget(cfg: Config, exclude=(), n_points=100, sampling="first", random_model="bound"):
+def main_budget(cfg: Config, exclude=(), n_points=100, sampling="first", random_model="bound",
+                split="random", block_size=50, gap=5):
     X, UX, y = load_zema_fullwindow(cfg, n_points, sampling)
     X, UX, spans = drop_channels(X, UX, n_points, exclude)
     N = len(y)
     tag = f"{sampling}{n_points}" + ("_no_" + "_".join(n.split()[-1].lower() for n in exclude)
                                      if exclude else "") + f"_{random_model}"
+    if split != "random":
+        tag += f"_{split}{block_size}"
     print(f"input dim {X.shape[1]} ({len(spans)} channels x {n_points}, sampling '{sampling}'); "
           f"random model '{random_model}'")
 
-    # same held-out test cycles as the baseline; validation carved out of the training part
-    rng = np.random.default_rng(cfg.seed)
-    idx = rng.permutation(N)
-    n_test = int(cfg.test_fraction * N)
-    te, rest = idx[:n_test], idx[n_test:]
-    n_val = int(VAL_FRACTION * len(rest))
-    va, tr = rest[:n_val], rest[n_val:]
-    print(f"train {len(tr)}, validation {len(va)}, test {len(te)}")
+    # random: same held-out test cycles as the baseline; validation carved out of the training part
+    tr, va, te = make_split(N, cfg, split, block_size, gap)
+    one, both = neighbour_leakage(tr, te)
+    print(f"split '{split}'" + (f" (blocks of {block_size}, purge gap {gap})" if split != "random" else "")
+          + f": train {len(tr)}, validation {len(va)}, test {len(te)}")
+    print(f"test cycles with a training neighbour: one side {one:.1%}, both sides {both:.1%}")
 
     U_rand, U_sys = split_uncertainty(X, UX, tr, spans, random_model)
     mean, std = X[tr].mean(0), X[tr].std(0) + 1e-12
@@ -233,9 +272,15 @@ if __name__ == "__main__":
     p.add_argument("--sampling", choices=SAMPLINGS, default="first")
     p.add_argument("--n-points", type=int, default=100)
     p.add_argument("--random-model", choices=RANDOM_MODELS, default="bound")
+    p.add_argument("--split", choices=SPLITS, default="random")
+    p.add_argument("--block-size", type=int, default=50, help="cycles per block (--split blocked)")
+    p.add_argument("--gap", type=int, default=5, help="purge gap in cycles (--split blocked)")
+    p.add_argument("--n-cycles", type=int, default=None, help="use only the first N cycles (smoke test)")
     args = p.parse_args()
     if args.self_test:
         self_test_lpu()
     else:
-        main_budget(Config(), exclude=tuple(args.exclude), n_points=args.n_points,
-                    sampling=args.sampling, random_model=args.random_model)
+        cfg = Config() if args.n_cycles is None else Config(n_cycles=args.n_cycles)
+        main_budget(cfg, exclude=tuple(args.exclude), n_points=args.n_points,
+                    sampling=args.sampling, random_model=args.random_model,
+                    split=args.split, block_size=args.block_size, gap=args.gap)

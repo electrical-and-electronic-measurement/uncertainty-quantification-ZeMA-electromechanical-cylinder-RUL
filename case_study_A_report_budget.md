@@ -99,6 +99,34 @@ The residuals bound how much propagated random input uncertainty the data allow:
 | Baseline input, `bound` / `noise` | 0.127 / 0.098 | 0.032 |
 | Without pressure, `bound` / `noise` | 0.100 / 0.094 | 0.042 |
 
+### 3.2 Blocked split (leakage check)
+
+The label is the cycle index (`y = k/N`), and the random split puts at least one neighbour (*k*±1) of 96% of the test cycles in the training set; 64.7% have both. Consecutive cycles are nearly identical, so the random-split test error may measure interpolation between neighbours. `--split blocked` assigns whole blocks of consecutive cycles to test / validation / training (seed 0, same fractions) and drops training cycles closer than 5 cycles to a held-out cycle. No test cycle then has a training neighbour. The test set changes, so the comparison is between splits, not on the same cycles.
+
+| Quantity | Random | Blocked 50 | Blocked 20 | Blocked 100 | Random, no pressure | Blocked 50, no pressure |
+|---|---|---|---|---|---|---|
+| Train / val / test cycles | 3242 / 571 / 953 | 2996 / 600 / 950 | 2741 / 580 / 960 | 3086 / 600 / 1000 | 3242 / 571 / 953 | 2996 / 600 / 950 |
+| Test RMSE / R² | 0.0664 / 0.948 | 0.0739 / 0.953 | 0.0772 / 0.937 | 0.0695 / 0.935 | 0.0694 / 0.943 | 0.0813 / 0.943 |
+| MAE | 0.047 | 0.051 | 0.056 | 0.052 | 0.045 | 0.052 |
+| LPU vs MC median rel. diff. | 6.3% | 6.8% | 5.1% | 6.1% | 4.7% | 4.5% |
+| mean *u*_c (same instrument) | 0.136 | 0.132 | 0.152 | 0.130 | 0.111 | 0.113 |
+| *u*_model (validation) | 0 | 0 | 0 | 0 | 0 | 0 |
+| Coverage k=2 / k=1 | 99.9% / 96.4% | 99.6% / 95.8% | 99.9% / 96.9% | 99.8% / 95.9% | 99.5% / 95.0% | 99.3% / 94.1% |
+| Coverage k=2, *u*_training only | 89.8% | 90.4% | 88.5% | 87.7% | 90.3% | 88.1% |
+| mean *u*_c / MAE | 2.87 | 2.59 | 2.72 | 2.49 | 2.48 | 2.19 |
+| rms *u*_rand MC / allowed by residuals | 0.127 / 0.032 | 0.121 / 0.047 | 0.143 / 0.046 | 0.119 / 0.039 | 0.100 / 0.042 | 0.102 / 0.061 |
+| RMSE using MC mean instead of *f*(*x*) | 0.0668 | 0.0740 | 0.0763 | 0.0809 | 0.0836 | 0.0985 |
+
+All columns use `--random-model bound`; with `noise` the blocked-50 runs give the same RMSE and *u*_c 0.108 (baseline input) / 0.108 (no pressure), coverage k=2 99.3% / 99.2%.
+
+Findings:
+
+1. **Neighbour leakage is small.** Without any adjacent training cycle, RMSE rises by 5–16% (0.066 → 0.070–0.077; without pressure 0.069 → 0.081) and R² stays at 0.94–0.95. The point accuracy is not an artefact of the random split.
+2. **The budget conclusions do not change.** *u*_model is still 0, coverage k=2 is still 99.3–99.9%, and the propagated random part (0.10–0.14) still exceeds what the residuals allow (0.04–0.06), though the gap narrows from ≈4× to ≈2–3×.
+3. **The MC-mean bias without pressure persists** (mean |MC mean − *f*(*x*)| 0.049): using the MC mean as the estimate raises RMSE from 0.081 to 0.099, a sign that the `bound` perturbations still leave the training domain for Velocity and the plain-bearing accelerometer.
+
+Reproduce with `--split blocked [--block-size 50] [--gap 5]`; outputs carry the suffix `_blocked<size>`.
+
 ---
 
 ## 4. Interpretation
@@ -131,7 +159,7 @@ The residuals bound how much propagated random input uncertainty the data allow:
 | `pipeline_run_budget_<variant>.log` | Captured stdout, including the per-channel random/systematic split |
 | `zema_lpu_vs_mc_budget_<variant>.pdf` | Validation figure (unmodified `make_validation_figure.py`) |
 
-Variants: `first100_bound`, `first100_noise`, `first100_no_pressure_bound`, `first100_no_pressure_noise`.
+Variants: `first100_bound`, `first100_noise`, `first100_no_pressure_bound`, `first100_no_pressure_noise`; blocked split (§3.2): the same four with suffix `_blocked50`, plus `first100_bound_blocked20` and `first100_bound_blocked100`.
 
 ```bash
 python case_study_A_analysis_budget.py --random-model bound

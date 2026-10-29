@@ -1,0 +1,56 @@
+input dim 1100 (11 channels x 100, sampling 'first'); random model 'noise'
+train 3242, validation 571, test 953
+
+=== Random / systematic split of the declared u (share of u^2, mean over samples) ===
+  Acceleration plain bearing   u_n=   2.059  random  23.8%  systematic  76.2%  u_rand,n=1.0000
+  Acceleration piston rod      u_n=   0.678  random  42.5%  systematic  57.5%  u_rand,n=0.4416
+  Acceleration ball bearing    u_n=   0.876  random  98.1%  systematic   1.9%  u_rand,n=0.8760
+  Active current               u_n=   0.172  random 100.0%  systematic   0.0%  u_rand,n=0.1723
+  Axial force                  u_n=   0.218  random  17.4%  systematic  82.6%  u_rand,n=0.0909
+  Motor current phase 1        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0233
+  Motor current phase 2        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0229
+  Motor current phase 3        u_n=   0.023  random 100.0%  systematic   0.0%  u_rand,n=0.0234
+  Pneumatic pressure           u_n=   8.796  random   0.0%  systematic 100.0%  u_rand,n=0.1585
+  Sound pressure               u_n=   0.000  random 100.0%  systematic   0.0%  u_rand,n=0.0001
+  Velocity                     u_n=   4.276  random   6.1%  systematic  93.9%  u_rand,n=1.0000
+  seed 0 trained
+  seed 1 trained
+  seed 2 trained
+  seed 3 trained
+  seed 4 trained
+  seed 5 trained
+  seed 6 trained
+  seed 7 trained
+  seed 8 trained
+  seed 9 trained
+
+validation: RMSE 0.0698, rms u_training 0.0578, rms u_rand_mc 0.0966  ->  u_model 0.0000
+  propagated 200/953 test cycles
+  propagated 400/953 test cycles
+  propagated 600/953 test cycles
+  propagated 800/953 test cycles
+  propagated 953/953 test cycles
+
+=== Case Study A -- corrected budget [first100_noise] ===
+test RMSE                          : 0.0664
+test R2                            : 0.9479
+mean u_rand (LPU)                  : 9.0894e-02
+mean u_rand (MC)                   : 9.5207e-02
+LPU vs MC median rel. diff (rand)  : 4.73%
+MC mean - f(x) (rand), mean |.|    : 1.4131e-02
+mean u_training                    : 5.1026e-02
+u_model (validation)               : 0.0000e+00
+mean u_c (same instrument, MC)     : 1.0991e-01
+mean u_sys (LPU / MC, transfer)    : 5.9592e-01 / 7.6739e-01
+mean u_c (transfer)                : 7.7579e-01
+mean u_indep (MC, original budget) : 1.0001e+00
+coverage @ k=2:
+  u_training only                  : 89.8%
+  u_rand + u_training              : 99.8%
+  u_c (rand + training + model)    : 99.8%   (target ~95%)
+  u_c_transfer                     : 100.0%
+  original budget (indep + train)  : 100.0%
+mean u_c / mean |error|            : 2.31
+corr(u_c, |error|)                 : 0.43
+
+wrote case_study_A_results_budget_first100_noise.csv  (u_physical_* = random part, same-instrument use)

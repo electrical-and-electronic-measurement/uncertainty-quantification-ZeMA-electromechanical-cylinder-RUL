@@ -12,7 +12,11 @@ computed both analytically and via Monte Carlo.
 doi:10.5281/zenodo.5185953 — 4,766 run-to-failure cycles, 11 sensor channels
 (acceleration x/y/z, active current, force, three-phase motor current,
 pressure, sound pressure, velocity), each reading shipped with its own
-metrologically evaluated standard uncertainty.
+metrologically evaluated standard uncertainty. Each cycle stores 1 s of the
+return stroke at 2 kHz (2000 samples per channel); the baseline pipeline uses
+only the **first 100 samples (first 50 ms)**, because
+`ZeMASamples(datapoints_per_cycle=100)` slices `values[:100]` rather than
+downsampling — see `case_study_A_report_fullwindow.md` §1.
 
 **Task.** Regression. The measurand is the consumed-lifetime fraction at cycle
 *k*: `y_k = k/N ∈ [0,1]`, with `RUL = 1 − y_k`. The label is deterministic
@@ -36,12 +40,21 @@ empirical coverage of the resulting `±k·u_c` interval.
 first-order linearity assumption breaks down at this network depth and input-
 uncertainty magnitude, so Monte Carlo is reported as the primary `u_physical`
 estimate (per the paper's own decision rule, not a bug). Coverage at `k=2` is
-**100%** (vs. an ~95% target), traced to one dominant, normalization-amplified
-sensor channel (Pressure, 51.8% of first-layer sensitivity) rather than a
-missing uncertainty source. The point prediction itself remains strong
+**100%** (vs. an ~95% target), traced to one dominant sensor channel
+(Pressure, 51.8% of first-layer sensitivity) rather than a missing uncertainty
+source: its declared standard uncertainty is ~9× its cycle-to-cycle variation
+(`u/s ≈ 8.7`), a property of the data that z-score normalization preserves
+rather than creates. The point prediction itself remains strong
 (`R² = 0.951`, 4.5× better RMSE than a naive mean-baseline) even though the
 uncertainty interval is currently too wide to be per-prediction actionable.
 See `case_study_A_report.md` §7 for the full diagnosis.
+
+**Follow-up variants.** Removing the Pressure channel keeps the same accuracy
+(RMSE 0.0655, `R² = 0.949`) while cutting MC `u_physical` by 68% (0.984 →
+0.319) and the LPU/MC gap to 20.7%. Sampling the whole 1 s window instead of
+the first 50 ms does not help this MLP (decimation: RMSE 0.106; block means:
+0.083). Coverage stays at 100% in every variant, while `u_training` alone
+covers 90–94%. See `case_study_A_report_fullwindow.md`.
 
 ## Tools
 
@@ -53,12 +66,16 @@ See `case_study_A_report.md` §7 for the full diagnosis.
 | [requirements.txt](requirements.txt) | Pinned versions used to produce every real result: `zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`. |
 | [case_study_A_guide.md](case_study_A_guide.md) | Step-by-step execution guide, mapped explicitly onto the paper's Phase 1–5 methodology. Read this before re-running anything. |
 | [case_study_A_report.md](case_study_A_report.md) | Full execution report: every number, decision, and diagnosis behind the results below. This is the primary reference document. |
+| [case_study_A_dataset_report.md](case_study_A_dataset_report.md) | Description of the full HDF5 file (ZeMA DAQ and SmartUp Unit, 24 signals: sensors, units, ranges, uncertainty models, `u/s` ratios, within-window behaviour) and a 22-item consistency check against Dorst et al. 2022, with the dataset issues found (cycle-count typo, axial load below nominal, undocumented ZeMA uncertainties, duplicated SUU uncertainty arrays). |
+| [check_dataset_consistency.py](check_dataset_consistency.py) | Prints every number in `case_study_A_dataset_report.md` (output in `dataset_consistency.log`). |
 | [case_study_A_eda.ipynb](case_study_A_eda.ipynb) | Exploratory data analysis of the raw ZeMA input data (value/uncertainty distributions per channel, degradation trends, correlations, sanity checks) — run before modeling, independent of `case_study_A_analysis.py`. Needs `pandas`/`seaborn` in addition to `requirements.txt`. |
 | [case_study_A_eda_outliers.ipynb](case_study_A_eda_outliers.ipynb) | Follow-up to the EDA above: investigates the start-of-cycle spikes visible in Pneumatic pressure/Velocity (shown to be a within-cycle acquisition transient, not a life-stage effect), builds a data-driven detector for genuine early-life ("running-in") outlier cycles on other channels (notably Axial force, Motor current phase 1), and reruns the key EDA views with those cycles excluded. |
 | [case_study_A_feature_trimming.ipynb](case_study_A_feature_trimming.ipynb) | Implements and validates the outliers notebook's recommendation to trim the leading acquisition-transient samples (Pneumatic pressure K=7, Velocity K=6, Axial force K=3) before feature extraction: builds the trimmed 1,084-dim feature set, then trains the pipeline's own unmodified MLP (`make_mlp`/`train`, 10-seed ensemble) on raw vs. trimmed features under an identical split and compares test RMSE/R². Includes the exact patch point in `case_study_A_analysis.py` to adopt it. |
 | [case_study_A_run_analysis.ipynb](case_study_A_run_analysis.ipynb) | Executes the full GUM pipeline end to end as a cell-by-cell walkthrough (Phases 1–5), reusing every function from `case_study_A_analysis.py` unmodified, for two scenarios: **A** raw features (reproduces the headline `README.md` numbers exactly, as a fidelity check) and **B** trimmed features via `build_trimmed_dataset()` — recomputing the *full* uncertainty budget (`u_physical` LPU+MC, `u_training`, `u_c`, coverage), not just RMSE, so the trimming recommendation can be judged on the uncertainty quantification itself. Does not overwrite `case_study_A_results.csv`. |
 | [case_study_A_analysis_trimmed.py](case_study_A_analysis_trimmed.py) | Standalone, CLI-runnable sibling of `case_study_A_analysis.py` (same imports, unmodified) that trims the acquisition-transient samples before training and writes `case_study_A_results_trimmed.csv`, plus the extra diagnostics (sensitivity ranking, MC convergence, `u_c`-actionability checks) behind `case_study_A_report_trimmed.md`. |
 | [case_study_A_report_trimmed.md](case_study_A_report_trimmed.md) | Full execution report for the trimmed-feature variant, structured like `case_study_A_report.md`, with an explicit section-by-section comparison against the baseline (no-trim) results — including a notable finding the point-prediction-only comparison in `case_study_A_feature_trimming.ipynb` couldn't see: trimming reverses the sign of the (weak) age-vs-uncertainty correlation. |
+| [case_study_A_analysis_fullwindow.py](case_study_A_analysis_fullwindow.py) | CLI-runnable sibling of `case_study_A_analysis.py` (same imports, unmodified) that reads the HDF5 directly to choose which within-cycle samples feed the model — `--sampling centre` (decimation over the whole 1 s window, default), `first` (what `ZeMASamples` returns) or `blockmean` (block means, conservative fully-correlated uncertainty) — with `--n-points` and `--exclude <channel>` for channel ablations. Writes `case_study_A_results_<variant>.csv` plus the same diagnostics as the trimmed variant. |
+| [case_study_A_report_fullwindow.md](case_study_A_report_fullwindow.md) | Execution report for four variants (whole-window decimation with/without Pressure, first 100 samples without Pressure, whole-window block means), compared with the baseline and trimmed runs: per-channel `u/s` analysis, full uncertainty budget, sensitivity ranking, MC convergence, actionability checks and recommendation. |
 | [case_study_A_eda.pdf](case_study_A_eda.pdf) / [case_study_A_eda_outliers.pdf](case_study_A_eda_outliers.pdf) / [case_study_A_feature_trimming.pdf](case_study_A_feature_trimming.pdf) / [case_study_A_run_analysis.pdf](case_study_A_run_analysis.pdf) | Rendered PDF exports of the four notebooks above, for sharing without a notebook environment. Regenerate with `python export_notebooks_to_pdf.py` after editing the notebooks. |
 | [export_notebooks_to_pdf.py](export_notebooks_to_pdf.py) | Renders the EDA notebooks to the PDFs above with wrapped code lines (plain `nbconvert --to webpdf` clips long lines). Needs `nbconvert` + `playwright` (`playwright install chromium`) on top of `requirements.txt`. |
 
@@ -73,6 +90,7 @@ See `case_study_A_report.md` §7 for the full diagnosis.
 | [case_study_A_results_trimmed.csv](case_study_A_results_trimmed.csv) | Same schema as `case_study_A_results.csv`, but on the trimmed (1,084-dim) feature set — output of `case_study_A_analysis_trimmed.py`. |
 | [zema_lpu_vs_mc_trimmed.pdf](zema_lpu_vs_mc_trimmed.pdf) | The `fig:zema_lpu_vs_mc` validation figure for the trimmed-feature run. |
 | [pipeline_run_trimmed.log](pipeline_run_trimmed.log) | Captured stdout of the `case_study_A_analysis_trimmed.py` run behind `case_study_A_report_trimmed.md`. |
+| `case_study_A_results_<variant>.csv` / `zema_lpu_vs_mc_<variant>.pdf` / `pipeline_run_<variant>.log` | Results CSV (same schema), validation figure and captured stdout of `case_study_A_analysis_fullwindow.py` for each variant behind `case_study_A_report_fullwindow.md`: `fullwindow`, `fullwindow_no_pressure`, `first100_no_pressure`, `blockmean`. |
 
 ### Synthetic (dev-only, not real results)
 
@@ -101,6 +119,19 @@ Means over the 953-cycle held-out test set:
 Full uncertainty budget table and per-channel sensitivity ranking (Pressure
 51.8%, Velocity 25.2%, Acceleration-x 11.5% — 88.5% combined) are in
 `case_study_A_report.md` §7 and §9, with paper-ready LaTeX text in §11.
+
+### Variants (same 953 test cycles, same split and seeds)
+
+| Variant | Input | RMSE | R² | `u_physical` MC | LPU/MC diff | `u_training` | Coverage k=2 (`u_c` / `u_training` only) |
+|---|---|---|---|---|---|---|---|
+| Baseline | first 100 samples, 11 ch. (1100) | 0.0641 | 0.951 | 0.984 | 36.5% | 0.049 | 100% / 89.8% |
+| Trimmed | first 100, transient removed (1084) | 0.0661 | 0.948 | 0.910 | 28.3% | 0.050 | 100% / 89.9% |
+| Whole window | 200 decimated over 1 s, 11 ch. (2200) | 0.1059 | 0.868 | 1.045 | 31.7% | 0.072 | 100% / 91.9% |
+| Whole window, no pressure | 200 decimated over 1 s, 10 ch. (2000) | 0.0738 | 0.936 | 0.356 | 22.0% | 0.059 | 100% / 91.6% |
+| **First 100, no pressure** | first 100, 10 ch. (1000) | **0.0655** | **0.949** | **0.319** | **20.7%** | **0.047** | 100% / 90.7% |
+| Block means | 200 means over 1 s, 11 ch. (2200) | 0.0833 | 0.918 | 1.982 | 45.0% | 0.074 | 100% / 94.3% |
+
+Details, sensitivity rankings and caveats in `case_study_A_report_fullwindow.md`.
 
 ## Tool usage guidance
 
@@ -138,8 +169,12 @@ python case_study_A_analysis.py
   local cache — budget roughly an hour on first run; it's cached afterward.
 - Trains a 10-seed MLP ensemble (hidden layers `(128, 64, 32)`, softplus,
   float64, Adam lr=1e-3, 200 epochs) at full resolution
-  (`datapoints_per_cycle=100` → input dim 1100). Expect a few hours on CPU;
-  trivially parallelizable over seeds if needed.
+  (`datapoints_per_cycle=100` → input dim 1100). Note that
+  `datapoints_per_cycle` selects the *first* N of the 2000 samples per cycle
+  (the first N/2 ms of the 1 s window), not N samples spread over it; use
+  `case_study_A_analysis_fullwindow.py --sampling centre|blockmean` for the
+  latter. Expect a few hours on CPU; trivially parallelizable over seeds if
+  needed.
 - Writes `case_study_A_results.csv` (one row per held-out test cycle).
 - Key parameters live in the `Config` dataclass at the top of the script
   (`n_cycles`, `datapoints_per_cycle`, `hidden`, `n_ensemble`, `n_mc`,
@@ -149,6 +184,19 @@ python case_study_A_analysis.py
 - If the Zenodo download is slow or blocked, the raw HDF5 is mirrored at
   doi:10.5281/zenodo.5185953; `ZeMASamples(..., skip_hash_check=True)`
   accepts a manually placed file in the cache directory.
+
+### 2b. (Optional) window-sampling and channel-ablation variants
+
+```bash
+python case_study_A_analysis_fullwindow.py                                   # 200 samples decimated over 1 s
+python case_study_A_analysis_fullwindow.py --exclude "Pneumatic pressure"    # same, without Pressure
+python case_study_A_analysis_fullwindow.py --sampling first --n-points 100 --exclude "Pneumatic pressure"
+python case_study_A_analysis_fullwindow.py --sampling blockmean              # 200 block means over 1 s
+```
+
+Each writes `case_study_A_results_<variant>.csv` without touching the baseline
+artifacts. Run them one at a time: with 2200 inputs the 1 M-sample MC
+convergence check is computed in chunks but still uses several GB.
 
 ### 3. Generate the validation figure
 

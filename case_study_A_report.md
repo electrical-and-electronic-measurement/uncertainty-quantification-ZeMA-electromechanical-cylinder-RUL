@@ -7,7 +7,7 @@
 > **Status update (29 Oct 2026).** The numbers in this report are still correct, but they describe the *original* budget. Later work changes how they should be read:
 >
 > 1. **Corrected budget** (`case_study_A_report_budget.md`). The original $u_{\mathrm{physical}}$ treats every declared input uncertainty as independent per-reading noise. For Pressure, Velocity and the plain-bearing accelerometer the declared $u$ exceeds the cross-cycle spread $s$, so at least 98.7%, 93.9% and 74% of $u^2$ must be common to all cycles (systematic). A systematic error common to all cycles cancels in the z-score when the same instrument is used for training and inference. Propagating only the random part and combining with Monte Carlo gives $u_c \approx 0.11$–$0.14$ instead of $0.985$, or $0.089$–$0.093$ when the manufacturer's noise floor of the Kistler 8704B50M1 accelerometers is used (`datasheet` model). LPU and MC then agree within 3–7%, so the 36.5% gap in §7 is a consequence of the misinterpreted input uncertainty, not of the network depth. The systematic part ($\approx 0.76$–$0.78$) is reported separately, for transfer to another instrument.
-> 2. **The over-coverage diagnosis in §7 and §11 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9% (98.9–99.6% with the `datasheet` model), because the estimates of the random part of Velocity and the plain-bearing accelerometer are data-based upper bounds (the residuals allow at most 0.03–0.06, against 0.08–0.14 computed); $u_{\mathrm{model}}$ estimated on a validation set comes out 0.
+> 2. **The over-coverage diagnosis in §7 and §11 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9% (98.9–99.6% with the `datasheet` model), because the estimates of the random part of Velocity and the plain-bearing accelerometer are data-based upper bounds (the residuals allow at most 0.03–0.06, against 0.08–0.14 computed); $u_{\mathrm{calibration}}$ estimated on a validation set comes out 0.
 > 3. **Split check** (`case_study_A_report_budget.md` §3.2). The random split leaves a neighbouring cycle ($k\pm1$) of 96% of the test cycles in training. Holding out whole blocks of consecutive cycles raises RMSE by only 5–16% (0.066 → 0.070–0.077, $R^2$ 0.94–0.95): the point accuracy is not an artefact of the random split.
 > 4. **Inputs are the first 50 ms** of the 1 s return-stroke window, not 100 readings spread over the cycle (`case_study_A_report_fullwindow.md` §1).
 > 5. The CSV `u_c` and the coverage in §7–§8 combine the **LPU** value; the MC-based figures are given in the text.
@@ -33,7 +33,7 @@
 
 **Notation.** $k$ indexes the test-to-failure cycle ($k=1,\dots,N$, with $N$ the total cycles run for the tested unit); $y_k = k/N \in [0,1]$ is the true, deterministically-assigned consumed-lifetime fraction at cycle $k$ (the measurand — see §4), with $\text{RUL}=1-y_k$.
 
- A hat denotes a model estimate of the corresponding quantity: $\hat y_k$ is the trained MLP's point prediction of $y_k$ from that cycle's sensor readings (`y_hat` in `case_study_A_results.csv`), and is a distinct claim from its associated uncertainty. $u_{\mathrm{physical}}$ is the standard uncertainty in $\hat y_k$ propagated from the sensor input uncertainties (physical-quantity uncertainty; via LPU or Monte Carlo — §7), $u_{\mathrm{training}}$ is the standard uncertainty from training-process variability (model-related, evaluated statistically from the seed-ensemble spread — §6), and $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ is their quadrature combination (§7) — the paper's $u_c^2=u_{\mathrm{physical}}^2+u_{\mathrm{model}}^2$ with $u_{\mathrm{model}}^2=u_{\mathrm{training}}^2$, since the architecture is held fixed and $u_{\mathrm{calibration}}$ is not considered — which is what the $k{=}2$ expanded-uncertainty coverage checks (§8) are built on. 
+ A hat denotes a model estimate of the corresponding quantity: $\hat y_k$ is the trained MLP's point prediction of $y_k$ from that cycle's sensor readings (`y_hat` in `case_study_A_results.csv`), and is a distinct claim from its associated uncertainty. $u_{\mathrm{physical}}$ is the standard uncertainty in $\hat y_k$ propagated from the sensor input uncertainties (physical-quantity uncertainty; via LPU or Monte Carlo — §7), $u_{\mathrm{training}}$ is the standard uncertainty from training-process variability (model-related, evaluated statistically from the seed-ensemble spread — §6), and $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ is their quadrature combination (§7) — the paper's $u_c^2=u_{\mathrm{physical}}^2+u_{\mathrm{model}}^2$ with $u_{\mathrm{model}}^2=u_{\mathrm{training}}^2$, since the architecture is held fixed and $u_{\mathrm{calibration}}$ is not considered — which is what the $k{=}2$ expanded-uncertainty coverage checks (§8) are built on. This holds for the original budget; the corrected budget (§11.1) uses $u_c^2=u_{\mathrm{rand}}^2+u_{\mathrm{training}}^2+u_{\mathrm{calibration}}^2$, with $u_{\mathrm{calibration}}$ estimated on a validation set. 
  
  $u_{\mathrm{physical}}$, $u_{\mathrm{training}}$, $u_c$ are a per-test-cycle quantity, not a single dataset-wide constant.
 
@@ -298,7 +298,7 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 
 LaTeX source for this table, and the corresponding paper sentences for the LPU/MC, coverage, and reporting-statement paragraphs, are reproduced verbatim in §11 below.
 
-> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{model}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3 and in the revised table of §11.1.
+> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{calibration}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3 and in the revised table of §11.1.
 
 ---
 
@@ -461,7 +461,7 @@ The empirical coverage of the $k=2$ expanded interval was $99.6\%$
 $\bar u_c / \overline{|e|} = 2.0$. The over-coverage comes from the random
 input part: the test residuals allow at most $0.03$ of propagated random
 input uncertainty, against $0.08$ computed, and the model term estimated on a
-validation set, $u_{\mathrm{model}}^2 = \overline{e^2} -
+validation set, $u_{\mathrm{calibration}}^2 = \overline{e^2} -
 \overline{u_{\mathrm{training}}^2} - \overline{u_{\mathrm{rand}}^2}$, is
 therefore zero. The excess comes from the velocity and plain-bearing
 acceleration channels, whose random part is capped at $s$ because no noise
@@ -499,7 +499,7 @@ Source & Type & $u$ & Notes \\
 \midrule
 $u_{\mathrm{rand}}$. Random part of sensor input & B & $0.076$ & MC; datasheet / Type A cap \\
 $u_{\mathrm{training}}$. Training process (10 seeds) & A & $0.051$ & optimization only \\
-$u_{\mathrm{model}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
+$u_{\mathrm{calibration}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
 Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
 Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
 \midrule

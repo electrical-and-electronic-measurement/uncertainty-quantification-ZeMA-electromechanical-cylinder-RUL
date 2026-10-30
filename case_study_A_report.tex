@@ -70,7 +70,7 @@ noise. Even with the corrected budget, coverage at $k{=}2$ stays at
 estimates of the random part of Velocity and the plain-bearing accelerometer
 are data-based upper bounds (the residuals allow at most 0.03--0.06, against
 0.08--0.14 computed);
-$u_{\mathrm{model}}$ estimated on a validation set comes out 0.
+$u_{\mathrm{calibration}}$ estimated on a validation set comes out 0.
 \item \textbf{Split check} (budget report \S3.2). The random split leaves a
 neighbouring cycle ($k\pm1$) of 96\% of the test cycles in training. Holding
 out whole blocks of consecutive cycles raises RMSE by only 5--16\%
@@ -127,6 +127,9 @@ combination (\S\ref{sec:propagation}) --- the paper's $u_c^2=u_{\mathrm{physical
 with $u_{\mathrm{model}}^2=u_{\mathrm{training}}^2$, since the architecture is held fixed and
 $u_{\mathrm{calibration}}$ is not considered --- which is what the $k{=}2$
 expanded-uncertainty coverage checks (\S\ref{sec:validation}) are built on.
+This holds for the original budget; the corrected budget (\S\ref{sec:paperready_revised}) uses
+$u_c^2=u_{\mathrm{rand}}^2+u_{\mathrm{training}}^2+u_{\mathrm{calibration}}^2$, with
+$u_{\mathrm{calibration}}$ estimated on a validation set.
 $u_{\mathrm{physical}}$, $u_{\mathrm{training}}$, $u_c$ are per-test-cycle quantities, not single
 dataset-wide constants.
 
@@ -678,7 +681,7 @@ verbatim in \S\ref{sec:paperready} below.
 
 \medskip\noindent\textbf{Update.} This is the original budget, with the full
 declared input uncertainty propagated as independent noise. The corrected
-budget (random/systematic split, $u_{\mathrm{model}}$ from validation, MC
+budget (random/systematic split, $u_{\mathrm{calibration}}$ from validation, MC
 combination) is in
 \texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak report\_\allowbreak budget.md}
 \S3 and in the revised table of \S\ref{sec:paperready_revised}.
@@ -910,7 +913,7 @@ The empirical coverage of the $k=2$ expanded interval was $99.6\%$
 $\bar u_c / \overline{|e|} = 2.0$. The over-coverage comes from the random
 input part: the test residuals allow at most $0.03$ of propagated random
 input uncertainty, against $0.08$ computed, and the model term estimated on a
-validation set, $u_{\mathrm{model}}^2 = \overline{e^2} -
+validation set, $u_{\mathrm{calibration}}^2 = \overline{e^2} -
 \overline{u_{\mathrm{training}}^2} - \overline{u_{\mathrm{rand}}^2}$, is
 therefore zero. The excess comes from the velocity and plain-bearing
 acceleration channels, whose random part is capped at $s$ because no noise
@@ -952,7 +955,7 @@ Source & Type & $u$ & Notes \\
 \midrule
 $u_{\mathrm{rand}}$. Random part of sensor input & B & $0.076$ & MC; datasheet / Type A cap \\
 $u_{\mathrm{training}}$. Training process (10 seeds) & A & $0.051$ & optimization only \\
-$u_{\mathrm{model}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
+$u_{\mathrm{calibration}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
 Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
 Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
 \midrule

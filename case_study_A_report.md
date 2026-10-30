@@ -6,8 +6,8 @@
 
 > **Status update (29 Oct 2026).** The numbers in this report are still correct, but they describe the *original* budget. Later work changes how they should be read:
 >
-> 1. **Corrected budget** (`case_study_A_report_budget.md`). The original $u_{\mathrm{physical}}$ treats every declared input uncertainty as independent per-reading noise. For Pressure, Velocity and the plain-bearing accelerometer the declared $u$ exceeds the cross-cycle spread $s$, so at least 98.7%, 93.9% and 74% of $u^2$ must be common to all cycles (systematic). A systematic error common to all cycles cancels in the z-score when the same instrument is used for training and inference. Propagating only the random part and combining with Monte Carlo gives $u_c \approx 0.11$–$0.14$ instead of $0.985$. LPU and MC then agree within 4–7%, so the 36.5% gap in §7 is a consequence of the misinterpreted input uncertainty, not of the network depth. The systematic part ($\approx 0.77$) is reported separately, for transfer to another instrument.
-> 2. **The over-coverage diagnosis in §7 and §11 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9%, because the data-based estimates of the random part are upper bounds (the residuals allow at most 0.03–0.06, against 0.09–0.14 computed); $u_{\mathrm{model}}$ estimated on a validation set comes out 0.
+> 1. **Corrected budget** (`case_study_A_report_budget.md`). The original $u_{\mathrm{physical}}$ treats every declared input uncertainty as independent per-reading noise. For Pressure, Velocity and the plain-bearing accelerometer the declared $u$ exceeds the cross-cycle spread $s$, so at least 98.7%, 93.9% and 74% of $u^2$ must be common to all cycles (systematic). A systematic error common to all cycles cancels in the z-score when the same instrument is used for training and inference. Propagating only the random part and combining with Monte Carlo gives $u_c \approx 0.11$–$0.14$ instead of $0.985$, or $0.089$–$0.093$ when the manufacturer's noise floor of the Kistler 8704B50M1 accelerometers is used (`datasheet` model). LPU and MC then agree within 3–7%, so the 36.5% gap in §7 is a consequence of the misinterpreted input uncertainty, not of the network depth. The systematic part ($\approx 0.76$–$0.78$) is reported separately, for transfer to another instrument.
+> 2. **The over-coverage diagnosis in §7 and §11 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9% (98.9–99.6% with the `datasheet` model), because the estimates of the random part of Velocity and the plain-bearing accelerometer are data-based upper bounds (the residuals allow at most 0.03–0.06, against 0.08–0.14 computed); $u_{\mathrm{model}}$ estimated on a validation set comes out 0.
 > 3. **Split check** (`case_study_A_report_budget.md` §3.2). The random split leaves a neighbouring cycle ($k\pm1$) of 96% of the test cycles in training. Holding out whole blocks of consecutive cycles raises RMSE by only 5–16% (0.066 → 0.070–0.077, $R^2$ 0.94–0.95): the point accuracy is not an artefact of the random split.
 > 4. **Inputs are the first 50 ms** of the 1 s return-stroke window, not 100 readings spread over the cycle (`case_study_A_report_fullwindow.md` §1).
 > 5. The CSV `u_c` and the coverage in §7–§8 combine the **LPU** value; the MC-based figures are given in the text.
@@ -28,7 +28,7 @@
 | $u_{\mathrm{physical}}$ (input quantities) | Propagated analytically (LPU) and via Monte Carlo (GUM Supplement 1, $M=10^4$) |
 | $u_{\mathrm{training}}$ (model-related) | 10-seed training ensemble, evaluated statistically |
 | **Headline result** | LPU and MC disagree by a median **36.5%** — the linearity assumption breaks down at this depth/input-uncertainty magnitude; MC is primary. Coverage @ $k=2$ is **100%**, driven by one dominant, uncertainty-amplified sensor channel (Pressure), not a missing source. *(Original budget; superseded — see the status update above.)* |
-| Corrected budget (update) | Random part only, MC: $u_c = 0.110$–$0.136$, LPU/MC 4.7–6.3%, coverage @ $k=2$ 99.8–99.9%; systematic part for transfer $\approx 0.76$ (`case_study_A_report_budget.md`) |
+| Corrected budget (update) | Random part only, MC: $u_c = 0.093$ (`datasheet`, used in §11.1), $0.110$ (`noise`), $0.136$ (`bound`); LPU/MC 3.6–6.3%; coverage @ $k=2$ 99.6–99.9%; systematic part for transfer $\approx 0.76$–$0.78$ (`case_study_A_report_budget.md`) |
 | Split check (update) | Blocked split, no test cycle adjacent to training: RMSE 0.070–0.077 vs. 0.066, $R^2$ 0.94–0.95 |
 
 **Notation.** $k$ indexes the test-to-failure cycle ($k=1,\dots,N$, with $N$ the total cycles run for the tested unit); $y_k = k/N \in [0,1]$ is the true, deterministically-assigned consumed-lifetime fraction at cycle $k$ (the measurand — see §4), with $\text{RUL}=1-y_k$.
@@ -89,19 +89,19 @@ UX = samples.uncertainties   # (4766, 1100), per-reading standard uncertainties
 
 Confirmed shapes: `X.shape = (4766, 1100)`, `UX.shape = (4766, 1100)`.
 
-**Channel layout.** `datapoints_per_cycle=100` × 11 channels = 1100 columns. The 11 channels are not 11 top-level HDF5 groups — inspecting the raw file shows 7 named quantities, two of which are themselves multi-axis:
+**Channel layout.** `datapoints_per_cycle=100` × 11 channels = 1100 columns. The 11 channels are not 11 top-level HDF5 groups — inspecting the raw file shows 7 named quantities, two of which hold three signals each:
 
-| Quantity | Sub-channels | Columns (100 each) |
+| Quantity (HDF5 group) | Signals (`si:label`) | Columns (100 each) |
 |---|---|---|
-| Acceleration | x, y, z | 300 |
+| Acceleration | plain bearing, piston rod, ball bearing (three separate uniaxial accelerometers) | 300 |
 | Active Current | — | 100 |
-| Force | — | 100 |
-| Motor Current | phases a, b, c | 300 |
-| Pressure | — | 100 |
+| Force | Axial force | 100 |
+| Motor Current | phases 1, 2, 3 | 300 |
+| Pressure | Pneumatic pressure | 100 |
 | Sound Pressure | — | 100 |
 | Velocity | — | 100 |
 
-3 + 1 + 1 + 3 + 1 + 1 + 1 = 11 channels, matching the "eleven sensors" the package documents.
+3 + 1 + 1 + 3 + 1 + 1 + 1 = 11 channels, matching the "eleven sensors" the package documents. The three accelerometers are not the axes of one sensor: a Kistler 8712A5M1 at the plain bearing and two Kistler 8704B50M1 at the piston rod and at the ball bearing (`case_study_A_dataset_report.md` §4). The first version of this report called them "Acceleration x/y/z"; in the tables below x = plain bearing, y = piston rod, z = ball bearing (positional correspondence, same columns).
 
 **Three Phase-1 decisions recorded:**
 1. **Measurand.** $y_k = k/N$, deterministic function of cycle index → **label uncertainty is negligible by construction**. No budget line is needed for the target.
@@ -186,9 +186,9 @@ At first glance, $u_{\mathrm{physical}} \approx 0.64$–$0.98$ against a measura
 |---|---|
 | Pressure | **8.89** |
 | Velocity | 4.34 |
-| Acceleration (x) | 2.02 |
-| Acceleration (z) | 0.86 |
-| Acceleration (y) | 0.69 |
+| Acceleration plain bearing (x) | 2.02 |
+| Acceleration ball bearing (z) | 0.86 |
+| Acceleration piston rod (y) | 0.69 |
 | Force | 0.22 |
 | Active Current | 0.17 |
 | Motor Current (a/b/c) | 0.02 |
@@ -202,15 +202,15 @@ For the Pressure channel, the *absolute* per-reading measurement uncertainty dis
 |---|---|---|
 | 1 | Pressure | **51.8%** |
 | 2 | Velocity | **25.2%** |
-| 3 | Acceleration (x) | **11.5%** |
-| 4 | Acceleration (z) | 4.9% |
-| 5 | Acceleration (y) | 3.9% |
+| 3 | Acceleration plain bearing (x) | **11.5%** |
+| 4 | Acceleration ball bearing (z) | 4.9% |
+| 5 | Acceleration piston rod (y) | 3.9% |
 | 6 | Force | 1.3% |
 | 7 | Active Current | 1.0% |
 | 8–10 | Motor Current (a/b/c) | 0.1% each |
 | 11 | Sound Pressure | ~0.0% |
 
-The top three channels (Pressure, Velocity, Acceleration-x) account for **88.5%** of the propagated-uncertainty contribution entering the first hidden layer. This single, dominant, amplified channel is the mechanism behind both headline numbers:
+The top three channels (Pressure, Velocity, plain-bearing acceleration) account for **88.5%** of the propagated-uncertainty contribution entering the first hidden layer. This single, dominant, amplified channel is the mechanism behind both headline numbers:
 
 - **LPU vs. MC median relative difference = 36.5%.** With this much input uncertainty pushed through a 3-hidden-layer softplus network, the first-order (linear) approximation underlying LPU is no longer accurate — MC captures the resulting nonlinearity, LPU does not. This is exactly the failure mode the paper's own decision rule anticipates for large input uncertainty at depth: **Monte Carlo is treated as the primary estimate** for this case study rather than LPU.
 - **Coverage @ k=2 = 100.0%** (vs. ~95% target). This is *over*-coverage, not under-coverage: $u_c$ is large enough that the $\pm 2u_c$ interval trivially contains the true value for essentially all 953 test cycles (interval half-width $\gtrsim 1.3$ against a $[0,1]$ measurand range). This is diagnostic of an **overestimated, single-channel-dominated $u_{\mathrm{physical}}$ budget**, not a missing uncertainty source.
@@ -234,7 +234,7 @@ A wide combined uncertainty is not automatically a *useless* one — it could st
 
 | Check | Value | Reading |
 |---|---|---|
-| mean $u_c$ vs. mean $\lvert y_\text{true}-\hat y\rvert$ | MC-based: $0.986$ vs. $0.046$; LPU-based (the CSV `u_c` column): $0.644$ vs. $0.046$ | **$u_c$ is ~21$\times$ (MC-based) or ~14$\times$ (LPU-based) larger than the actual mean error** — not calibrated, not conservative-but-reasonable |
+| mean $u_c$ vs. mean $\lvert y_\text{true}-\hat y\rvert$ | MC-based: $0.986$ (mean of the per-cycle $u_c^{\mathrm{MC}}$; the $0.985$ of §7/§9 combines the two means) vs. $0.046$; LPU-based (the CSV `u_c` column): $0.644$ vs. $0.046$ | **$u_c$ is ~21$\times$ (MC-based) or ~14$\times$ (LPU-based) larger than the actual mean error** — not calibrated, not conservative-but-reasonable |
 | Range of $u_{\mathrm{physical}}^{\mathrm{MC}}$ across all 953 test cycles | $0.792$–$1.194$ | Only a $1.5\times$ spread against a measurand of width 1 — close to a fixed offset, not a per-cycle signal |
 | corr($u_{\mathrm{physical}}$, $y_\text{true}$) | LPU $r{=}0.70$, MC $r{=}0.61$ | Uncertainty rises somewhat with age — qualitatively right direction |
 | corr($u_c$, actual $\lvert\text{error}\rvert$) | MC-based $r{=}0.15$, LPU-based $r{=}0.26$ | Too weak to use $u_c$ to flag which individual predictions are less trustworthy |
@@ -289,7 +289,7 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 
 | Source | Type | $u$ | Sensitivity / notes |
 |---|---|---|---|
-| $u_{\mathrm{physical}}$ — sensor input (11 channels) | B | $0.984$ (MC, primary; LPU $=0.641$, 36.5% median disagreement) | Pressure 51.8%, Velocity 25.2%, Acceleration-x 11.5% (88.5% combined) |
+| $u_{\mathrm{physical}}$ — sensor input (11 channels) | B | $0.984$ (MC, primary; LPU $=0.641$, 36.5% median disagreement) | Pressure 51.8%, Velocity 25.2%, Acceleration plain bearing 11.5% (88.5% combined) |
 | $u_{\mathrm{training}}$ — training process (10-seed ensemble) | A | $0.049$ | Optimization variance only, architecture excluded |
 | $u_{\mathrm{architecture}}$ — architecture selection | — | excluded | Held fixed: (128,64,32), softplus |
 | Generalization / distribution shift | B | — | Assessed via coverage; no missing-source signal |
@@ -326,7 +326,9 @@ LaTeX source for this table, and the corresponding paper sentences for the LPU/M
 | `zema_lpu_vs_mc_syntetic.pdf` | Figure rendered from the synthetic CSV, for pipeline testing only. |
 | `make_validation_figure.md` | Dev notes on the figure script. |
 
-**Recommendation:** bundle only the first table's 8 files as supplementary material for the paper. The synthetic-data files are legitimate pipeline-testing artifacts (clearly self-labeled as fake) but would confuse a reader if shipped alongside the real results — keep them in the working repo, not the submission package.
+**Later additions.** The corrected budget (`case_study_A_analysis_budget.py`, `case_study_A_report_budget.md` and its `*_budget_*` CSVs, logs and figures), the variant reports (`case_study_A_report_trimmed.md`, `case_study_A_report_fullwindow.md` with their scripts and outputs) and the dataset description (`case_study_A_dataset_report.md`, `check_dataset_consistency.py`, `dataset_consistency.log`) belong to the supplementary package too; `README.md` lists every file.
+
+**Recommendation:** bundle the core files above together with these later additions as supplementary material for the paper. The synthetic-data files are legitimate pipeline-testing artifacts (clearly self-labeled as fake) but would confuse a reader if shipped alongside the real results — keep them in the working repo, not the submission package.
 
 ---
 
@@ -337,8 +339,9 @@ LaTeX source for this table, and the corresponding paper sentences for the LPU/M
 The uncertainty budget was computed on the full-resolution ZeMA electromechanical
 cylinder dataset (\texttt{zema\_emc\_annotated} v0.7.1, \texttt{torch} 2.13.0,
 Python 3.10.12), with input dimension $11 \times 100 = 1100$
-(11 sensor channels: acceleration $x/y/z$, active current, force,
-three-phase motor current, pressure, sound pressure, velocity).
+(11 sensor channels: three accelerometers (plain bearing, piston rod,
+ball bearing), active current, axial force, three-phase motor current,
+pneumatic pressure, sound pressure, velocity).
 ```
 
 **LPU vs. MC sentence:**
@@ -357,9 +360,10 @@ The empirical coverage of the $k=2$ expanded interval was $100.0\%$ against
 the $\approx 95\%$ target. Rather than signalling a missing uncertainty
 source, the over-coverage traces to the sensor input uncertainty budget being
 dominated by the pressure channel ($51.8\%$ of the first-layer sensitivity
-contribution, vs.\ $25.2\%$ for velocity and $11.5\%$ for the $x$-axis
-acceleration channel): its per-reading standard uncertainty exceeds its own
-training-set signal variation, so $z$-score normalization
+contribution, vs.\ $25.2\%$ for velocity and $11.5\%$ for the
+plain-bearing acceleration channel): its per-reading standard
+uncertainty exceeds its own training-set signal variation, so $z$-score
+normalization
 ($u(x') = u(x)/\sigma_{\text{train}}$) amplifies its normalized contribution
 to $\approx 8.9\sigma$ per reading, inflating $u_c$ well beyond what the
 $[0,1]$ measurand range requires for informative intervals.
@@ -392,7 +396,7 @@ LPU/MC gap.
 Source & Type & $u$ & Sensitivity / notes \\
 \midrule
 $u_{\mathrm{physical}}$. Sensor input uncertainty (11 channels) & B & $0.984$ & Pressure 51.8\%, Velocity 25.2\%, \\
- & & & Acceleration-x 11.5\% \\
+ & & & Acc.\ plain bearing 11.5\% \\
 $u_{\mathrm{training}}$. Training process variability (10-seed ensemble) & A & $0.049$ & optimization variance only \\
 Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
 Generalization / distribution shift & B & \textemdash & assessed via coverage (Sec.~\ref{sec:...}) \\
@@ -410,9 +414,9 @@ linearity assumption is violated at this network depth and input-uncertainty
 magnitude (Sec.~\ref{sec:...validation}).
 ```
 
-### 11.1 Revised paper-ready text (corrected budget, update 29 Oct 2026)
+### 11.1 Revised paper-ready text (corrected budget, update 30 Oct 2026)
 
-The paragraphs above describe the original budget, and their coverage explanation is superseded (status update at the top). The text below uses the corrected budget of `case_study_A_report_budget.md`: baseline input (11 channels, first 100 samples), `noise` model for the random part, random split; the `bound` model and the blocked split are given as checks. The `noise` model is the tighter of the two upper bounds; choosing it, or the no-pressure configuration, is an authors' decision — swap in the numbers from `case_study_A_report_budget.md` §3 if needed.
+The paragraphs above describe the original budget, and their coverage explanation is superseded (status update at the top). The text below uses the corrected budget of `case_study_A_report_budget.md`: baseline input (11 channels, first 100 samples), `datasheet` model for the random part (the recommendation of `case_study_A_report_budget.md` §5), random split. The two data-based models (`noise`, `bound`) and the blocked split are given as checks. Choosing the no-pressure configuration instead is an authors' decision — swap in the numbers from `case_study_A_report_budget.md` §3 if needed.
 
 **Input-uncertainty interpretation:**
 ```latex
@@ -421,43 +425,51 @@ separating random and systematic components. For a random component the
 cross-cycle standard deviation $s$ of a reading satisfies
 $s^2 = \mathrm{var}(\text{true}) + u_{\mathrm{rand}}^2$, hence
 $u_{\mathrm{rand}} \le s$. For the pressure, velocity and plain-bearing
-acceleration channels $u/s$ is $8.8$, $4.3$ and $2.1$, so at least
-$98.7\%$, $93.9\%$ and $74\%$ of $u^2$ is common to all cycles. A systematic
-error common to all cycles is an affine map per reading, which the $z$-score
-normalization removes exactly when the same instrument is used for training
-and inference. We therefore propagate only the random part, estimated from
-the data as $u_{\mathrm{rand}} = \min(u, s, \sigma_k)$, with $\sigma_k$ the
-white-noise floor of channel $k$ from second differences of adjacent
-samples; both $s$ and $\sigma_k$ are upper bounds. The systematic part is
-propagated separately, as a shift common to all readings of a channel, and
-reported for transfer to another instrument.
+acceleration channels $u/s$ is $8.8$, $4.3$ and $2.1$ (first 100 samples,
+training cycles), so at least $98.7\%$, $93.9\%$ and $74\%$ of $u^2$ is
+common to all cycles. A systematic error common to all cycles is an affine
+map per reading, which the $z$-score normalization removes exactly when the
+same instrument is used for training and inference. We therefore propagate
+only the random part, estimated as
+$u_{\mathrm{rand}} = \min(u, s, \sigma_k, \sigma_{\mathrm{ds},k})$, with
+$\sigma_k$ the white-noise floor of channel $k$ from second differences of
+adjacent samples and $\sigma_{\mathrm{ds},k}$ the noise floor published by
+the manufacturer. The latter exists only for the two Kistler 8704B50M1
+accelerometers ($0.004\,g$ rms); for the other channels $s$ and $\sigma_k$
+are upper bounds. The systematic part is propagated separately, as a shift
+common to all readings of a channel, and reported for transfer to another
+instrument.
 ```
 
 **LPU vs. MC sentence:**
 ```latex
 Across the held-out cycles, the analytical and Monte Carlo estimates of the
-propagated random input uncertainty agreed to within $4.7\%$ (median relative
-difference; $6.3\%$ with the looser bound $u_{\mathrm{rand}} = \min(u, s)$),
-so the first-order approximation is adequate at this input-uncertainty
-magnitude; the Monte Carlo value is used in the combination. With the full
-declared uncertainty propagated as independent noise the two methods
-disagreed by $36.5\%$, because perturbations of up to nine training-set
-standard deviations take the network far outside its training domain.
+propagated random input uncertainty agreed to within $3.6\%$ (median relative
+difference; $4.7\%$ and $6.3\%$ with the purely data-based bounds
+$u_{\mathrm{rand}} = \min(u, s, \sigma_k)$ and $\min(u, s)$), so the
+first-order approximation is adequate at this input-uncertainty magnitude;
+the Monte Carlo value is used in the combination. With the full declared
+uncertainty propagated as independent noise the two methods disagreed by
+$36.5\%$, because perturbations of up to nine training-set standard
+deviations take the network far outside its training domain.
 ```
 
 **Coverage sentence:**
 ```latex
-The empirical coverage of the $k=2$ expanded interval was $99.8\%$
-($93.1\%$ at $k=1$) against the $\approx 95\%$ target, with
-$\bar u_c / \overline{|e|} = 2.3$. The over-coverage comes from the random
+The empirical coverage of the $k=2$ expanded interval was $99.6\%$
+($89.2\%$ at $k=1$) against the $\approx 95\%$ target, with
+$\bar u_c / \overline{|e|} = 2.0$. The over-coverage comes from the random
 input part: the test residuals allow at most $0.03$ of propagated random
-input uncertainty, against $0.10$ computed, and the model term estimated on a
+input uncertainty, against $0.08$ computed, and the model term estimated on a
 validation set, $u_{\mathrm{model}}^2 = \overline{e^2} -
 \overline{u_{\mathrm{training}}^2} - \overline{u_{\mathrm{rand}}^2}$, is
-therefore zero. A tighter estimate of the random part requires sensor noise
-data that the dataset does not provide. Holding out whole blocks of 50
-consecutive cycles, so that no test cycle is adjacent to a training cycle,
-gives RMSE $0.074$ (vs.\ $0.066$), $R^2 = 0.95$ and coverage $99.3\%$.
+therefore zero. The excess comes from the velocity and plain-bearing
+acceleration channels, whose random part is capped at $s$ because no noise
+specification is available for them; a tighter estimate requires repeated
+static measurements or a manufacturer noise specification. Holding out whole
+blocks of 50 consecutive cycles, so that no test cycle is adjacent to a
+training cycle, gives RMSE $0.074$ (vs.\ $0.066$), $R^2 = 0.95$ and
+coverage $99.3\%$.
 ```
 
 **Reporting/assumptions statement (Phase 5):**
@@ -471,7 +483,7 @@ normalization and would be confounded with the measurand. Label uncertainty
 is negligible by construction ($y_k = k/N$). Monte Carlo propagation followed
 GUM Supplement~1 with Gaussian inputs and $M = 10^4$ samples. The point
 estimate is the network output $f(x)$; the Monte Carlo mean differs from it
-by $0.014$ on average.
+by $0.010$ on average.
 ```
 
 **Table `\ref{tab:zema_uncertainty_budget}` (revised):**
@@ -485,20 +497,22 @@ by $0.014$ on average.
 \toprule
 Source & Type & $u$ & Notes \\
 \midrule
-$u_{\mathrm{rand}}$. Random part of sensor input & B & $0.095$ & MC; Type A cap \\
+$u_{\mathrm{rand}}$. Random part of sensor input & B & $0.076$ & MC; datasheet / Type A cap \\
 $u_{\mathrm{training}}$. Training process (10 seeds) & A & $0.051$ & optimization only \\
 $u_{\mathrm{model}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
 Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
 Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
 \midrule
-Combined $u_c$ & \textemdash & $\mathbf{0.110}$ & coverage $k{=}2$: $99.8\%$ \\
+Combined $u_c$ & \textemdash & $\mathbf{0.093}$ & coverage $k{=}2$: $99.6\%$ \\
 \midrule
-$u_{\mathrm{sys}}$. Systematic part (transfer only) & B & $0.767$ & MC; mostly pressure \\
-Combined, transfer to another instrument & \textemdash & $0.776$ & \\
+$u_{\mathrm{sys}}$. Systematic part (transfer only) & B & $0.782$ & MC; mostly pressure \\
+Combined, transfer to another instrument & \textemdash & $0.788$ & \\
 \bottomrule
 \end{tabular}
 \end{table}
 ```
+
+Combined values are means of the per-cycle $u_c$, so they differ slightly from the quadrature sum of the column means.
 
 ---
 

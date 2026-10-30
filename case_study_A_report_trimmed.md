@@ -4,7 +4,7 @@
 
 **Companion document to `case_study_A_report.md`.** This report records the execution of Case Study A with one change to Phase 1 (feature extraction): the leading within-cycle samples of Pneumatic pressure, Velocity and Axial force are dropped before the feature vector is assembled, removing what `case_study_A_eda_outliers.ipynb` identified as a measurement/DAQ acquisition transient rather than a degradation signal. Everything else — architecture, training procedure, train/test split, propagation code — is byte-for-byte the same as the baseline run, via unmodified imports from `case_study_A_analysis.py`. It accompanies `case_study_A_analysis_trimmed.py`, `case_study_A_results_trimmed.csv`, and `zema_lpu_vs_mc_trimmed.pdf`, and is meant to be read alongside the baseline `case_study_A_report.md`.
 
-> **Status update (29 Oct 2026).** This report uses the original budget (full declared input uncertainty propagated as independent noise). Its diagnosis of the over-coverage — Pressure/Velocity uncertainty amplified by the normalization (§6, §8) — is superseded by `case_study_A_report_budget.md`: the declared uncertainty of those channels is mostly systematic, and a systematic error common to all cycles cancels in the normalization for same-instrument use. With the corrected budget, $u_c \approx 0.11$–$0.14$ and LPU/MC agree within 4–7% without any trimming, so the trim is no longer needed to make LPU usable. The accuracy and split statements in §4 still hold; a blocked split (budget report §3.2) raises RMSE by only 5–16% on the untrimmed input. The trimmed variant has not been re-run with the corrected budget.
+> **Status update (29 Oct 2026).** This report uses the original budget (full declared input uncertainty propagated as independent noise). Its diagnosis of the over-coverage — Pressure/Velocity uncertainty amplified by the normalization (§6, §8) — is superseded by `case_study_A_report_budget.md`: the declared uncertainty of those channels is mostly systematic, and a systematic error common to all cycles cancels in the normalization for same-instrument use. With the corrected budget, $u_c \approx 0.11$–$0.14$ (0.093 with the `datasheet` model) and LPU/MC agree within 3–7% without any trimming, so the trim is no longer needed to make LPU usable. The accuracy and split statements in §4 still hold; a blocked split (budget report §3.2) raises RMSE by only 5–16% on the untrimmed input. The trimmed variant has not been re-run with the corrected budget.
 
 ---
 
@@ -91,7 +91,7 @@ As in the baseline, the CSV's `u_c` column combines the **LPU** estimate; since 
 | 8–10 | Motor current (×3) | 100 each | ~0.021 | 0.1% each | 0.1% each |
 | 11 | Sound pressure | 100 | 0.0001 | ~0.0% | ~0.0% |
 
-\* From `case_study_A_report.md` §7. † The baseline report used the generic axis labels "Acceleration x/y/z"; this report uses the dataset's own per-sensor HDF5 labels (plain bearing / piston rod / ball bearing, same ones used throughout `case_study_A_eda.ipynb`) — the correspondence is positional (same three channels, same ranking), not a relabeling of different data.
+\* From `case_study_A_report.md` §7. † The first version of the baseline report used the generic axis labels "Acceleration x/y/z"; this report uses the dataset's own per-sensor HDF5 labels (plain bearing / piston rod / ball bearing, same ones used throughout `case_study_A_eda.ipynb`) — the correspondence is positional (same three channels, same ranking), not a relabeling of different data.
 
 **Trimming barely moves the sensitivity ranking.** Pressure and Velocity together still account for **75.5%** of first-layer sensitivity (vs. 77.0% at baseline) — essentially unchanged. This confirms the mechanism diagnosed in `case_study_A_report.md` §7 (a channel's *absolute* measurement-noise floor exceeding its own *steady-state* cross-cycle signal variation, amplified by z-score normalization) is a property of the channels' **steady-state** readings, not of the few leading transient samples — trimming the transient was never expected to fix this, and it doesn't.
 
@@ -128,7 +128,7 @@ $M=10^4$ remains adequately converged (sub-1% sampling noise) relative to the 28
 | LPU vs. MC agreement | 36.5% | 28.3% | Improved, but both are far above the 5–10% threshold for treating LPU as primary — MC remains primary in both |
 | mean $u_{\mathrm{physical}}^{\mathrm{MC}}$ | 0.984 | 0.910 | Improved (↓7.5%) |
 | Coverage @ $k=2$ | 100.0% | 100.0% | Unchanged — still driven by Pressure+Velocity dominance (§6) |
-| RMSE / $R^2$ (seed 0) | 0.0641 / 0.951 | 0.0661 / 0.948 | Marginally worse — within the ~0.18 pooled-SD seed noise already found in `case_study_A_feature_trimming.ipynb`, not a reliable effect |
+| RMSE / $R^2$ (seed 0) | 0.0641 / 0.951 | 0.0661 / 0.948 | Marginally worse on seed 0; over the 10-seed ensemble `case_study_A_feature_trimming.ipynb` found the opposite sign (mean RMSE 0.0670 raw vs 0.0651 trimmed, a difference of only 0.18 pooled seed-to-seed SDs) — not a reliable effect |
 | corr($u_{\mathrm{physical}}$, age) | +0.61 (sensible) | −0.20 (wrong direction) | **Regressed** |
 | corr($u_c$, $\lvert$error$\rvert$) | 0.26 / 0.15 | 0.05 | **Regressed** (already weak, now weaker) |
 

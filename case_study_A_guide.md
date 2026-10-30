@@ -13,8 +13,10 @@ Create a dedicated virtual environment — `zema_emc_annotated` pins `numpy<2`, 
 
 ```bash
 python3.10 -m venv zema_env && source zema_env/bin/activate
-pip install zema_emc_annotated torch numpy matplotlib
+pip install -r requirements.txt
 ```
+
+`requirements.txt` pins the versions used for every result (`zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`); Python 3.13+ cannot install `numpy==1.26.4`. `README.md` §0 also describes the equivalent `uv` setup.
 
 Sanity-check the analytical propagation code *before* touching the dataset:
 
@@ -45,7 +47,7 @@ Three decisions to record in the paper (Phase 1 requires explicit task character
 
 1. **Measurand.** The testbed ran the cylinder to end of life, so the consumed-lifetime fraction of cycle *k* out of *N* is `y_k = k/N ∈ [0,1]`, and RUL = 1 − y. This is the convention of the ZeMA ML tutorials (Lulic & Jugo 2019) and of Ludwig's thesis. The label is defined deterministically from the cycle index, so **label uncertainty is negligible** — state this explicitly; it closes off a reviewer question about training-data (label) uncertainty for this specific dataset.
 2. **Task type.** Quantitative measurand → regression → standard uncertainty `u(y)` as the dispersion metric. One sentence in the paper.
-3. **Input dimension.** `datapoints_per_cycle=100` gives input dimension 1100 (11 × 100), matching the mid-size configurations in Ludwig's runtime tables. You can reduce to 10 (input dim 110) for faster iteration during development; report whichever you finalize.
+3. **Input dimension.** `datapoints_per_cycle=100` gives input dimension 1100 (11 × 100). These are the **first 100 samples (first 50 ms)** of each 1 s, 2 kHz window, not 100 samples spread over it (`case_study_A_report_fullwindow.md` §1). The dimension matches the mid-size configurations in Ludwig's runtime tables. You can reduce to 10 (input dim 110) for faster iteration during development; report whichever you finalize.
 
 ---
 
@@ -75,7 +77,7 @@ The script trains an MLP with hidden layers (128, 64, 32) and **softplus** activ
 - the derivative needed for `H(i)` is closed-form: `d/dz softplus_β(z) = sigmoid(βz)`;
 - if you want the QuadLU variant instead (to align maximally with Ludwig et al.), add its piecewise derivative to `_activation_derivative()` — three lines, given in the thesis (Eq. 2.21 there).
 
-Record the three Phase-3 criteria as they resolve for this case: white-box access (yes — we own the weights), architectural compatibility (yes — feedforward MLP, smooth activation), computational constraints (LPU chosen as primary; MC retained for validation only). This paragraph writes itself and directly instantiates the paper's decision tree — reference `Figure \ref{fig:decision_tree}`.
+Record the three Phase-3 criteria as they resolve for this case: white-box access (yes — we own the weights), architectural compatibility (yes — feedforward MLP, smooth activation), computational constraints (LPU chosen as primary; MC retained for validation). *In the execution, MC became primary for the original budget (36.5% LPU/MC gap); with the corrected budget LPU and MC agree within 3–7%.* This paragraph writes itself and directly instantiates the paper's decision tree — reference `Figure \ref{fig:decision_tree}`.
 
 Training details to report for reproducibility (Phase 5 reporting requirements): Adam, lr 1e-3, 200 epochs, MSE loss, Xavier init, float64 throughout (float64 matters — it keeps the LPU-vs-MC comparison free of float32 noise).
 
@@ -106,7 +108,7 @@ Outputs land in `case_study_A_results.csv` with one row per test sample: `y_true
 > - Before propagating, check each channel's declared *u* against its cross-cycle spread *s*. Where *u* > *s*, most of *u* is systematic; it cancels in the normalization for same-instrument use and must not be propagated as independent noise. `case_study_A_analysis_budget.py` splits *u* into random and systematic parts, propagates the random part, adds `u_model` from a validation set and reports the systematic part separately for transfer (`case_study_A_report_budget.md`).
 > - The CSV `u_c` of `case_study_A_analysis.py` combines the LPU value. If MC is primary, combine MC (the budget script does).
 
-**Populating the paper's uncertainty budget table.** Use the *mean over the test set* for each column, and add the sensitivity information: the dominant input channels can be extracted from the first-layer contribution `W(1) diag(u(x)) `— rank sensor channels by their summed absolute contribution and report the top 2–3 in the "Sensitivity" column (e.g., "axial force and pressure dominate"). That single addition turns the table from a formality into an actual diagnostic, which is the point the paper's Reporting section makes ("relative magnitudes of contributions identify dominant sources").
+**Populating the paper's uncertainty budget table.** Use the *mean over the test set* for each column, and add the sensitivity information: the dominant input channels can be extracted from the first-layer contribution `W(1) diag(u(x)) `— rank sensor channels by their summed absolute contribution and report the top 2–3 in the "Sensitivity" column (in this case study: pneumatic pressure, velocity and the plain-bearing accelerometer). That single addition turns the table from a formality into an actual diagnostic, which is the point the paper's Reporting section makes ("relative magnitudes of contributions identify dominant sources").
 
 ---
 
@@ -130,7 +132,7 @@ Three checks, all computed by the script:
 
 ## Step 7 — Writing it up
 
-Replace the red TODOs in Section 5.1 with the concrete numbers. Suggested mapping:
+Replace the red TODOs in Section 5.1 with the concrete numbers. The final paper-ready paragraphs and table (corrected budget, `datasheet` model) are in `case_study_A_report.md` §11.1; the mapping below describes how they were obtained.
 
 - The dataset/tooling paragraph is already written — verify version numbers (`zema_emc_annotated` version, torch version) and add them.
 - Table `\ref{tab:zema_uncertainty_budget}`: means from the CSV + dominant-sensor sensitivity ranking.
@@ -144,4 +146,4 @@ Environment + self-test: under an hour. Dataset download: budget roughly an hour
 
 ## Known risks and fallbacks
 
-If the Zenodo download is slow or blocked, the raw HDF5 is mirrored at doi:10.5281/zenodo.5185953 and `ZeMASamples(..., skip_hash_check=True)` accepts a manually placed file in the cache directory. If `u_training` dominates `u_c` (plausible for a smallish MLP on 4766 samples), that is a finding, not a failure — it quantitatively supports the paper's claim that epistemic sources "should be minimized before being included in the uncertainty budget," and motivates the larger ensemble of Step 4. If coverage is poor, add a residual-based `u_calibration` term and report both budgets (before/after) — that before/after comparison is arguably a *stronger* demonstration of the methodology than a clean pass would be.
+If the automatic Zenodo download is slow or blocked, download the raw HDF5 manually from the Zenodo record (doi:10.5281/zenodo.5185953); `ZeMASamples(..., skip_hash_check=True)` accepts a manually placed file in the cache directory. If `u_training` dominates `u_c` (plausible for a smallish MLP on 4766 samples), that is a finding, not a failure — it quantitatively supports the paper's claim that epistemic sources "should be minimized before being included in the uncertainty budget," and motivates the larger ensemble of Step 4. If coverage is poor, add a residual-based `u_calibration` term and report both budgets (before/after) — that before/after comparison is arguably a *stronger* demonstration of the methodology than a clean pass would be.

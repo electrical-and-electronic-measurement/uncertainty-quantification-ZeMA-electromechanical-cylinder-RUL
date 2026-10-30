@@ -165,7 +165,7 @@ Mean over all cycles, in 20 consecutive 50 ms blocks:
 | Pneumatic pressure (bar) | 8.33 | 8.61 | 8.66 | 8.76 | 8.88 |
 | Active current (A) | −2.89 | −3.21 | −3.34 | −3.44 | −3.57 |
 
-Velocity is constant over the window, as the paper states. Load-related signals (force, pressure, active current) are **not** constant: they rise by about 20% across the second, with a step between 0.50 and 0.60 s.
+Velocity is constant over the window, as the paper states. Load-related signals (force, pressure, active current) are **not** constant: axial force and active current rise by about 22–24% across the second, pneumatic pressure by about 7%, with a step between 0.50 and 0.60 s.
 
 ### 6.3 SUU uncertainties
 
@@ -222,7 +222,7 @@ Legend: ✅ consistent · ⚠️ partially consistent or not verifiable · ❌ i
 3. **Treat the ZeMA DAQ uncertainties as declared Type B values of undocumented provenance.** State this as a limitation in any metrological analysis. Their correlation structure (between samples, cycles and channels) is not specified: the constant values behave like systematic errors, which matters as soon as samples are averaged or differenced.
 4. **Do not use the SUU uncertainties for the MPU 9250 angular velocity, magnetic flux density or temperature** until the duplication is clarified with the authors. Treat the per-axis SUU uncertainties with caution as well.
 5. **Pneumatic pressure (*u/s* ≈ 10) and velocity (*u/s* ≈ 5) dominate any propagated input uncertainty.** This is a property of the declared uncertainties, not of normalisation.
-6. **Within the 1 s window, load-related signals are not stationary** (+20% rise, step at ≈0.5 s). Features computed on part of the window, such as the first 50 ms returned by `ZeMASamples(datapoints_per_cycle=100)`, are not representative of the whole window.
+6. **Within the 1 s window, load-related signals are not stationary** (force and active current +22–24%, pressure +7%, step at ≈0.5 s). Features computed on part of the window, such as the first 50 ms returned by `ZeMASamples(datapoints_per_cycle=100)`, are not representative of the whole window.
 7. **Only one cylinder (axis11) is included.** Generalisation across devices cannot be assessed with this file.
 8. **Where *u* > *s*, most of the declared uncertainty must be systematic.** For a random component, *s*² = var(true) + *u*_rand², so *u*_rand ≤ *s*. For Pressure, Velocity and the plain-bearing accelerometer this leaves at least 98.7%, 93.9% and 74% of *u*² common to all cycles (first 100 samples, training cycles). A systematic error common to all cycles cancels in a z-score normalization fitted on the same instrument, so it should not be propagated as independent noise for same-instrument use; it matters only for transfer to another instrument. The dataset gives no repeatability or noise specification, and a manufacturer noise floor is published only for the Kistler 8704B50M1 (§4.1); for Pressure, Velocity and the plain-bearing accelerometer the random part can only be bounded from the data. See `case_study_A_report_budget.md`.
 9. **Consecutive cycles are nearly identical, and the label is the cycle index.** A random train/test split leaves a neighbouring cycle of almost every test cycle in training. Use a blocked split (whole blocks of consecutive cycles) as a check; for this dataset it raises the RMSE of the case-study MLP by only 5–16% (`case_study_A_report_budget.md` §3.2).

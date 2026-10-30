@@ -10,8 +10,9 @@ computed both analytically and via Monte Carlo.
 
 **Dataset.** ZeMA electromechanical cylinder, annotated (Dorst et al. 2021),
 doi:10.5281/zenodo.5185953 — 4,766 run-to-failure cycles, 11 sensor channels
-(acceleration x/y/z, active current, force, three-phase motor current,
-pressure, sound pressure, velocity), each reading shipped with its own
+(three accelerometers — plain bearing, piston rod, ball bearing — active
+current, axial force, three-phase motor current, pneumatic pressure, sound
+pressure, velocity), each reading shipped with its own
 metrologically evaluated standard uncertainty. Each cycle stores 1 s of the
 return stroke at 2 kHz (2000 samples per channel); the baseline pipeline uses
 only the **first 100 samples (first 50 ms)**, because
@@ -36,25 +37,30 @@ model's prediction by combining:
 combined in quadrature, `u_c = sqrt(u_physical² + u_training²)`, and validated against
 empirical coverage of the resulting `±k·u_c` interval.
 
-**Headline result.** LPU and Monte Carlo disagree by a median **36.5%** — the
-first-order linearity assumption breaks down at this network depth and input-
-uncertainty magnitude, so Monte Carlo is reported as the primary `u_physical`
-estimate (per the paper's own decision rule, not a bug). Coverage at `k=2` is
-**100%** (vs. an ~95% target), traced to one dominant sensor channel
-(Pressure, 51.8% of first-layer sensitivity) rather than a missing uncertainty
-source: its declared standard uncertainty is ~9× its cycle-to-cycle variation
-(`u/s ≈ 8.7`), a property of the data that z-score normalization preserves
-rather than creates. The point prediction itself remains strong
-(`R² = 0.951`, 4.5× better RMSE than a naive mean-baseline) even though the
-uncertainty interval is currently too wide to be per-prediction actionable.
-See `case_study_A_report.md` §7 for the full diagnosis.
+**Original budget (first run).** LPU and Monte Carlo disagree by a median
+**36.5%**, so Monte Carlo was reported as the primary `u_physical` estimate
+(per the paper's own decision rule). Coverage at `k=2` is **100%** (vs. an
+~95% target), with one dominant sensor channel (Pressure, 51.8% of
+first-layer sensitivity): its declared standard uncertainty is ~9× its
+cycle-to-cycle variation (`u/s ≈ 8.7`, median over the first 100 samples;
+≈10.6 over the whole 1 s window), a property of the data that z-score
+normalization preserves rather than creates. The point prediction itself is
+strong (`R² = 0.951`, 4.5× better RMSE than a naive mean-baseline). See
+`case_study_A_report.md` §7. *The diagnosis of the first run (linearity
+breaking down at this network depth, over-coverage caused by one amplified
+channel) is superseded by the corrected budget below: the 36.5% gap and the
+over-coverage come from propagating a mostly systematic declared uncertainty
+as independent noise.*
 
 **Follow-up variants.** Removing the Pressure channel keeps the same accuracy
 (RMSE 0.0655, `R² = 0.949`) while cutting MC `u_physical` by 68% (0.984 →
 0.319) and the LPU/MC gap to 20.7%. Sampling the whole 1 s window instead of
 the first 50 ms does not help this MLP (decimation: RMSE 0.106; block means:
 0.083). Coverage stays at 100% in every variant, while `u_training` alone
-covers 90–94%. See `case_study_A_report_fullwindow.md`.
+covers 90–94%. See `case_study_A_report_fullwindow.md`. These variants use
+the original budget; with the corrected budget below, removing Pressure
+changes the same-instrument `u_c` very little (0.110 → 0.106 with the `noise`
+model) and only halves the systematic part relevant for transfer.
 
 **Corrected budget.** The original `u_physical` treats every declared input
 uncertainty as independent per-sample noise. The data show that most of it
@@ -63,7 +69,7 @@ acceleration), and a systematic error common to all cycles cancels exactly in
 the z-score normalization when the same instrument is used for training and
 inference. Splitting `u` into random and systematic parts, propagating only the
 random part, adding a validation-based `u_model` and combining with Monte Carlo
-gives `u_c ≈ 0.11–0.14` instead of ≈0.98. LPU and MC then agree within 4–6%,
+gives `u_c ≈ 0.11–0.14` instead of ≈0.98. LPU and MC then agree within 4–7%,
 and `u_c` is 2.3–2.9× the mean error instead of 21×. Coverage at k=2 is
 still 99.5–99.9%, because the data-based estimates of the random part are upper
 bounds. Using the manufacturer's noise floor where one is published (only the
@@ -143,8 +149,25 @@ Means over the 953-cycle held-out test set:
 | MC convergence (10k→100k→1M) | Δ 1.75% → 0.08% |
 
 Full uncertainty budget table and per-channel sensitivity ranking (Pressure
-51.8%, Velocity 25.2%, Acceleration-x 11.5% — 88.5% combined) are in
-`case_study_A_report.md` §7 and §9, with paper-ready LaTeX text in §11.
+51.8%, Velocity 25.2%, plain-bearing acceleration 11.5% — 88.5% combined) are in
+`case_study_A_report.md` §7 and §9. These are the original-budget numbers;
+the paper-ready text of `case_study_A_report.md` §11.1 uses the corrected
+budget below.
+
+### Corrected budget (same 953 test cycles, random split, 15% of training held out for `u_model`)
+
+| Input | Random model | RMSE | `u_rand` MC | LPU/MC diff | `u_c` | Coverage k=2 / k=1 | `u_sys` (transfer) |
+|---|---|---|---|---|---|---|---|
+| first 100, 11 ch. | `bound` | 0.0664 | 0.124 | 6.3% | 0.136 | 99.9% / 96.4% | 0.758 |
+| first 100, 11 ch. | `noise` | 0.0664 | 0.095 | 4.7% | 0.110 | 99.8% / 93.1% | 0.767 |
+| **first 100, 11 ch.** | **`datasheet`** | **0.0664** | **0.076** | **3.6%** | **0.093** | **99.6% / 89.2%** | **0.782** |
+| first 100, no pressure | `bound` | 0.0694 | 0.098 | 4.7% | 0.111 | 99.5% / 95.0% | 0.376 |
+| first 100, no pressure | `noise` | 0.0694 | 0.092 | 4.2% | 0.106 | 99.5% / 93.8% | 0.380 |
+| first 100, no pressure | `datasheet` | 0.0694 | 0.073 | 3.2% | 0.089 | 99.4% / 90.2% | 0.383 |
+
+`u_model` (validation) is 0 in every run. The bold row is the one used in
+`case_study_A_report.md` §11.1. Blocked split and details in
+`case_study_A_report_budget.md` §3.
 
 ### Variants (same 953 test cycles, same split and seeds)
 
@@ -208,6 +231,9 @@ Use `uv venv --python 3.10 --clear .venv` to recreate an existing `.venv` that
 was built with the wrong Python version. In VS Code, select `.venv` as the
 interpreter / notebook kernel.
 
+The reports and the guide use an environment named `zema_env`
+(`python3.10 -m venv zema_env`); it is equivalent to `.venv`.
+
 Plain `venv` + `pip` also works if Python 3.10 is already installed:
 
 ```bash
@@ -251,9 +277,10 @@ python case_study_A_analysis.py
   `epochs`, `lr`, `seed`) — edit there to reduce `datapoints_per_cycle` to
   `10` (input dim 110) for faster iteration during development; report
   whichever configuration you finalize.
-- If the Zenodo download is slow or blocked, the raw HDF5 is mirrored at
-  doi:10.5281/zenodo.5185953; `ZeMASamples(..., skip_hash_check=True)`
-  accepts a manually placed file in the cache directory.
+- If the automatic download is slow or blocked, download the HDF5 manually
+  from the Zenodo record (doi:10.5281/zenodo.5185953);
+  `ZeMASamples(..., skip_hash_check=True)` accepts a manually placed file in
+  the cache directory.
 
 ### 2b. (Optional) window-sampling and channel-ablation variants
 
@@ -299,10 +326,11 @@ never copy a number from it, or a plot made from it, into the paper.
   outcome is a valid, publishable result — do not tune the network to force
   agreement.
 - **Coverage @ k=2** far from ~95%: under-coverage usually means a missing
-  uncertainty source (check residual bias first); over-coverage (as found here)
-  usually means the `u_physical` budget is inflated by one channel — check the
-  per-channel normalized-uncertainty and first-layer sensitivity breakdown
-  (`case_study_A_report.md` §7) before assuming a real over-conservatism.
+  uncertainty source (check residual bias first). For over-coverage (as found
+  here), first compare each channel's declared `u` with its cross-cycle spread
+  `s`: where `u > s` most of `u` is systematic and must not be propagated as
+  independent noise (`case_study_A_report_budget.md` §1–§2). Then compare the
+  propagated random part with what the residuals allow (§3.1 there).
 - **Ensemble `u_training`**: with only 10 seeds, `u_training` itself carries ~24% relative
   sampling noise (χ², 9 dof). If `u_training` turns out to dominate `u_c`, increase
   `n_ensemble` to 20–30 before finalizing the budget table.

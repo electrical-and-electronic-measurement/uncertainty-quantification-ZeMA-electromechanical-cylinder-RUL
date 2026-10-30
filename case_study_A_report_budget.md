@@ -52,9 +52,9 @@ Resulting split (share of *u*², baseline input):
 - **Transfer to another, recalibrated instrument:** *u*_sys is additionally propagated as a shift common to all samples of a channel, independent between channels. This is a block-diagonal covariance with *U*_k = *u*_sys,k *u*_sys,kᵀ.
   - `u_sys_lpu`: LPU with that covariance.
   - `u_sys_mc`: MC with one N(0, 1) draw per channel.
-- **Model term:** 15% of the training cycles are held out as a validation set; the test set is unchanged. Then *u*_model² = mean(*e*_val²) − mean(*u*_training,val²) − mean(*u*_rand,val²), clipped at 0, so that the residual variance is not counted twice.
+- **Calibration term:** 15% of the training cycles are held out as a validation set; the test set is unchanged. Then *u*_calibration² = mean(*e*_val²) − mean(*u*_training,val²) − mean(*u*_rand,val²), clipped at 0, so that the residual variance is not counted twice. This is the *u*_calibration term of the paper's model-uncertainty decomposition; the script, its logs and the CSV column still call it `u_model`.
 - **Combination:**
-  - same instrument: *u*_c = √(*u*_rand,MC² + *u*_training² + *u*_model²);
+  - same instrument: *u*_c = √(*u*_rand,MC² + *u*_training² + *u*_calibration²);
   - transfer: *u*_c,transfer = √(*u*_c² + *u*_sys,MC²).
 
   Coverage is computed with these Monte Carlo-based values.
@@ -80,7 +80,7 @@ The model is trained on 3 242 cycles instead of 3 813, because 571 are now used 
 | LPU vs MC median rel. diff. | **6.3%** | **4.7%** | **3.6%** | **4.7%** | **4.2%** | **3.2%** |
 | mean \|MC mean − *f*(*x*)\| | 0.022 | 0.014 | 0.010 | 0.048 | 0.043 | 0.029 |
 | mean *u*_training | 0.051 | 0.051 | 0.051 | 0.048 | 0.048 | 0.048 |
-| *u*_model (validation) | 0 | 0 | 0 | 0 | 0 | 0 |
+| *u*_calibration (validation) | 0 | 0 | 0 | 0 | 0 | 0 |
 | **mean *u*_c (same instrument)** | **0.136** | **0.110** | **0.093** | **0.111** | **0.106** | **0.089** |
 | Coverage k=2 / k=1 | 99.9% / 96.4% | 99.8% / 93.1% | 99.6% / 89.2% | 99.5% / 95.0% | 99.5% / 93.8% | 99.4% / 90.2% |
 | mean *u*_c / mean \|error\| | 2.87 | 2.31 | 1.97 | 2.48 | 2.36 | 1.98 |
@@ -111,7 +111,7 @@ The label is the cycle index (`y = k/N`), and the baseline random split (3 813 t
 | MAE | 0.047 | 0.051 | 0.056 | 0.052 | 0.045 | 0.052 |
 | LPU vs MC median rel. diff. | 6.3% | 6.8% | 5.1% | 6.1% | 4.7% | 4.5% |
 | mean *u*_c (same instrument) | 0.136 | 0.132 | 0.152 | 0.130 | 0.111 | 0.113 |
-| *u*_model (validation) | 0 | 0 | 0 | 0 | 0 | 0 |
+| *u*_calibration (validation) | 0 | 0 | 0 | 0 | 0 | 0 |
 | Coverage k=2 / k=1 | 99.9% / 96.4% | 99.6% / 95.8% | 99.9% / 96.9% | 99.8% / 95.9% | 99.5% / 95.0% | 99.3% / 94.1% |
 | Coverage k=2, *u*_training only | 89.8% | 90.4% | 88.5% | 87.7% | 90.3% | 88.1% |
 | mean *u*_c / MAE | 2.87 | 2.59 | 2.72 | 2.49 | 2.48 | 2.19 |
@@ -123,7 +123,7 @@ All columns use `--random-model bound`; with `noise` the blocked-50 runs give th
 Findings:
 
 1. **Neighbour leakage is small.** Without any adjacent training cycle, RMSE rises by 5–16% (0.066 → 0.070–0.077; without pressure 0.069 → 0.081) and R² stays at 0.94–0.95. The point accuracy is not an artefact of the random split.
-2. **The budget conclusions do not change.** *u*_model is still 0, coverage k=2 is still 99.3–99.9%, and the propagated random part (0.10–0.14) still exceeds what the residuals allow (0.04–0.06), though the gap narrows from ≈4× to ≈2–3×.
+2. **The budget conclusions do not change.** *u*_calibration is still 0, coverage k=2 is still 99.3–99.9%, and the propagated random part (0.10–0.14) still exceeds what the residuals allow (0.04–0.06), though the gap narrows from ≈4× to ≈2–3×.
 3. **The MC-mean bias without pressure persists** (mean |MC mean − *f*(*x*)| 0.049): using the MC mean as the estimate raises RMSE from 0.081 to 0.099, a sign that the `bound` perturbations still leave the training domain for Velocity and the plain-bearing accelerometer.
 
 Reproduce with `--split blocked [--block-size 50] [--gap 5]`; outputs carry the suffix `_blocked<size>`.
@@ -142,7 +142,7 @@ The `datasheet` model replaces the data-based random part of the two Kistler 870
 ## 4. Interpretation
 
 1. **The corrected budget is 7–9 times smaller and the propagation becomes valid** (figures in this item for `bound`/`noise`; `datasheet` in §3.3). Same-instrument *u*_c drops from ≈0.98 (original) to 0.11–0.14 (without Pressure from 0.32 to ≈0.11, a factor ≈3). LPU and MC now agree within 4–7% (4.2–6.3% random split, 4.5–6.8% blocked), so first-order propagation is acceptable. The Monte Carlo bias of the point estimate falls from 0.46 to 0.01–0.05. The agreement concerns the standard deviation, not the mean: without Pressure the bias (0.048) is still about 70% of the RMSE and one-sided, and taking the MC mean as the estimate would worsen the RMSE (0.069 → 0.084; blocked split 0.081 → 0.099). The point estimate therefore stays *f*(*x*). The interval width is now of the same order as the actual error (*u*_c/MAE 2.3–2.9, previously 21; 1.97–1.98 with `datasheet`), and corr(*u*_c, \|error\|) improves to 0.40–0.52 (0.45–0.53 with `datasheet`).
-2. **The intervals are still about twice too wide.** Coverage at k=2 is 99.5–99.9%, while the ±1·*u*_c interval already covers 93–96%. The cause is the random part, not a missing term. *u*_model comes out 0 in every run because *u*_training² + *u*_rand² already exceeds the validation residual variance. The residual check (§3.1) quantifies this: the data allow at most 0.03–0.04 of propagated random input uncertainty, against 0.09–0.13 computed. Both random models are upper bounds, and for Velocity and the plain-bearing accelerometer they hit the *u*_rand ≤ *s* cap. The true random part of those channels must be well below their cross-cycle spread. The blocked split (§3.2) gives the same picture: 0.10–0.14 computed against 0.04–0.06 allowed, *u*_model again 0. The published noise floor of the two Kistler 8704B50M1 accelerometers (`datasheet`, §3.3) brings *u*_c down to 0.089–0.093 and the excess to 1.8–2.4×; the rest is due to Velocity and the plain-bearing accelerometer, for which no noise specification exists.
+2. **The intervals are still about twice too wide.** Coverage at k=2 is 99.5–99.9%, while the ±1·*u*_c interval already covers 93–96%. The cause is the random part, not a missing term. *u*_calibration comes out 0 in every run because *u*_training² + *u*_rand² already exceeds the validation residual variance. The residual check (§3.1) quantifies this: the data allow at most 0.03–0.04 of propagated random input uncertainty, against 0.09–0.13 computed. Both random models are upper bounds, and for Velocity and the plain-bearing accelerometer they hit the *u*_rand ≤ *s* cap. The true random part of those channels must be well below their cross-cycle spread. The blocked split (§3.2) gives the same picture: 0.10–0.14 computed against 0.04–0.06 allowed, *u*_calibration again 0. The published noise floor of the two Kistler 8704B50M1 accelerometers (`datasheet`, §3.3) brings *u*_c down to 0.089–0.093 and the excess to 1.8–2.4×; the rest is due to Velocity and the plain-bearing accelerometer, for which no noise specification exists.
 3. **The systematic part matters only for transfer, and there it is large.**
    - With all channels, *u*_sys ≈ 0.76, dominated by Pressure.
    - Without Pressure, *u*_sys ≈ 0.38. This is larger than the original "independent" budget (0.32), because a shift common to all samples of a channel adds linearly over the samples instead of in quadrature.
@@ -153,7 +153,7 @@ The `datasheet` model replaces the data-based random part of the two Kistler 870
 
 ## 5. Recommendation
 
-- **Report the same-instrument budget** *u*_c = √(*u*_rand² + *u*_training² + *u*_model²) with Monte Carlo as the primary *u*_rand. State the random/systematic split and its data-based upper bounds explicitly.
+- **Report the same-instrument budget** *u*_c = √(*u*_rand² + *u*_training² + *u*_calibration²) with Monte Carlo as the primary *u*_rand. State the random/systematic split and its data-based upper bounds explicitly.
 - **Report *u*_sys separately** as the additional uncertainty for deployment on another instrument, propagated as a per-channel common shift.
 - **Use the manufacturer noise floor where one is published** (`--random-model datasheet`, §3.3): among the sensors checked this applies only to the Kistler 8704B50M1, and it lowers *u*_c to 0.089–0.093 without changing any other conclusion. Report which channels rely on a datasheet value and which on a data-based bound.
 - **State the remaining over-coverage as a limitation of the dataset**: it declares only a total *u*, with no repeatability/noise specification. The data-based estimates of the random part are upper bounds, and even with the datasheet floor the residuals show that the true random part is about 2 times smaller. A tighter estimate for Velocity and the plain-bearing accelerometer needs repeated static measurements, or a noise specification of the motor controller's speed signal and of the Kistler 8712A5M1. Fitting it to the residuals would turn the coverage check into a calibration, and is not done here.
@@ -169,7 +169,7 @@ The `datasheet` model replaces the data-based random part of the two Kistler 870
 | File | Role |
 |---|---|
 | `case_study_A_analysis_budget.py` | Corrected-budget pipeline (`--random-model bound\|noise\|datasheet`, `--exclude`, `--sampling`, `--n-points`, `--split`); imports the core functions of `case_study_A_analysis.py` and the loader of `case_study_A_analysis_fullwindow.py` unmodified. The datasheet noise floors are in its `DATASHEET_NOISE` table |
-| `case_study_A_results_budget_<variant>.csv` | One row per test cycle (953; blocked split 950–1000). Columns `y_true, y_hat, u_physical_lpu, u_physical_mc` (random part), `u_training, u_c, covered_k2, mc_bias, u_model, u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc` |
+| `case_study_A_results_budget_<variant>.csv` | One row per test cycle (953; blocked split 950–1000). Columns `y_true, y_hat, u_physical_lpu, u_physical_mc` (random part), `u_training, u_c, covered_k2, mc_bias, u_model` (= *u*_calibration), `u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc` |
 | `pipeline_run_budget_<variant>.log` | Captured stdout, including the per-channel random/systematic split |
 | `zema_lpu_vs_mc_budget_<variant>.pdf` | Validation figure (unmodified `make_validation_figure.py`) |
 

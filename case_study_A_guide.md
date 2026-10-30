@@ -55,7 +55,7 @@ Fill the source inventory that becomes the rows of `Table \ref{tab:zema_uncertai
 
 | Source | Type | How obtained in this case study |
 |---|---|---|
-| `u_physical` — sensor input uncertainty (11 channels) | A | Distributed with the dataset (`samples.uncertainties`) — metrologically evaluated per reading |
+| `u_physical` — sensor input uncertainty (11 channels) | B | Distributed with the dataset (`samples.uncertainties`) — declared values of undocumented provenance, consistent with datasheet specifications (corrected 30 Oct 2026; was A) |
 | `u_training` — training process variability | A | Std. dev. of predictions across a 10-seed ensemble (Step 4) |
 | `u_architecture` — architecture selection | — | Optional: repeat ensemble across 2–3 widths; otherwise state it is held fixed and excluded, with justification |
 | Generalization / distribution shift | B | Assessed via held-out coverage (Step 6); no separate budget line unless coverage fails |

@@ -263,7 +263,7 @@ fast-iteration option.
 \toprule
 Source & Type & How obtained \\
 \midrule
-$u_{\mathrm{physical}}$ --- sensor input uncertainty (11 channels) & A & \texttt{samples.uncertainties}, metrologically evaluated per reading \\
+$u_{\mathrm{physical}}$ --- sensor input uncertainty (11 channels) & B & \texttt{samples.uncertainties}, declared values of undocumented provenance \\
 $u_{\mathrm{training}}$ --- training process variability & A & Std.\ dev.\ of predictions across a 10-seed ensemble (\S\ref{sec:model}) \\
 $u_{\mathrm{architecture}}$ --- architecture selection & --- & \textbf{Excluded}, held fixed at (128,64,32)/softplus --- not swept in this case study \\
 Generalization / distribution shift & B & Assessed via held-out coverage (\S\ref{sec:validation}); no separate budget line, since coverage did not indicate a missing source \\
@@ -272,6 +272,8 @@ Label (RUL definition) & --- & Negligible by construction (\S\ref{sec:data}) \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\noindent\emph{Type of $u_{\mathrm{physical}}$ (corrected 30 Oct 2026):} \textbf{B}, not A. The ZeMA DAQ uncertainties are declared values (a constant per channel, or exactly 1\%/1.5\% of the reading) with no statistical evaluation behind them (\texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak dataset\_\allowbreak report.md} F3 and \S9). Propagating them, by LPU or Monte Carlo, does not change their type. In the corrected budget, the random part is the declared Type B value capped by Type A bounds from the data (cross-cycle spread $s$, noise floor $\sigma_k$); the systematic part is Type B.
 
 Two assumptions declared explicitly, per Phase 5 reporting requirements:
 
@@ -643,7 +645,7 @@ python make_validation_figure.py --csv case_study_A_results.csv \
 \toprule
 Source & Type & $u$ & Sensitivity / notes \\
 \midrule
-$u_{\mathrm{physical}}$ --- sensor input (11 channels) & A & $0.984$\footnotemark[1] &
+$u_{\mathrm{physical}}$ --- sensor input (11 channels) & B & $0.984$\footnotemark[1] &
 Pressure 51.8\%, Velocity 25.2\%, Acceleration-$x$ 11.5\% (88.5\% combined) \\
 $u_{\mathrm{training}}$ --- training process (10-seed ensemble) & A & $0.049$ &
 Optimization variance only, architecture excluded \\
@@ -806,7 +808,7 @@ respectively, both far smaller than the $36.5\%$ LPU/MC gap.
 Source & Type & $u$ & Sensitivity / notes \\
 \midrule
 $u_{\mathrm{physical}}$. Sensor input uncertainty (11 channels)
- & A & $0.984$ & Pressure 51.8\%, Velocity 25.2\%, \\
+ & B & $0.984$ & Pressure 51.8\%, Velocity 25.2\%, \\
  & & & Acceleration-x 11.5\% \\
 $u_{\mathrm{training}}$. Training process variability (10-seed ensemble)
  & A & $0.049$ & optimization variance only \\
@@ -919,7 +921,7 @@ by $0.014$ on average.
 \toprule
 Source & Type & $u$ & Notes \\
 \midrule
-$u_{\mathrm{rand}}$. Random part of sensor input & A/B & $0.095$ & MC; LPU $0.091$ \\
+$u_{\mathrm{rand}}$. Random part of sensor input & B & $0.095$ & MC; Type A cap \\
 $u_{\mathrm{training}}$. Training process (10 seeds) & A & $0.051$ & optimization only \\
 $u_{\mathrm{model}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
 Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\

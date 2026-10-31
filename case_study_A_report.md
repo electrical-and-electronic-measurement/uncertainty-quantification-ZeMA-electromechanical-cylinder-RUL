@@ -418,27 +418,68 @@ magnitude (Sec.~\ref{sec:...validation}).
 
 The paragraphs above describe the original budget, and their coverage explanation is superseded (status update at the top). The text below uses the corrected budget of `case_study_A_report_budget.md`: baseline input (11 channels, first 100 samples), `datasheet` model for the random part (the recommendation of `case_study_A_report_budget.md` §5), random split. The two data-based models (`noise`, `bound`) and the blocked split are given as checks. Choosing the no-pressure configuration instead is an authors' decision — swap in the numbers from `case_study_A_report_budget.md` §3 if needed.
 
-**Input-uncertainty interpretation:**
+**Input-uncertainty model: two components with different correlation structure** (`JCGM101` is the key already used in the paper draft; `JCGM100`, `JCGM102`, `JCGM200` and `vonNeumann1941` are to be added, BibTeX entries at the end of this section. `paper_revision_proposal.md` uses a shorter version of this text in §5.1 of the paper and the general argument in Section 4, Phase 2):
 ```latex
-The dataset declares a single standard uncertainty $u$ per reading, without
-separating random and systematic components. For a random component the
-cross-cycle standard deviation $s$ of a reading satisfies
-$s^2 = \mathrm{var}(\text{true}) + u_{\mathrm{rand}}^2$, hence
-$u_{\mathrm{rand}} \le s$. For the pressure, velocity and plain-bearing
-acceleration channels $u/s$ is $8.8$, $4.3$ and $2.1$ (first 100 samples,
-training cycles), so at least $98.7\%$, $93.9\%$ and $74\%$ of $u^2$ is
-common to all cycles. A systematic error common to all cycles is an affine
-map per reading, which the $z$-score normalization removes exactly when the
-same instrument is used for training and inference. We therefore propagate
-only the random part, estimated as
-$u_{\mathrm{rand}} = \min(u, s, \sigma_k, \sigma_{\mathrm{ds},k})$, with
-$\sigma_k$ the white-noise floor of channel $k$ from second differences of
-adjacent samples and $\sigma_{\mathrm{ds},k}$ the noise floor published by
-the manufacturer. The latter exists only for the two Kistler 8704B50M1
-accelerometers ($0.004\,g$ rms); for the other channels $s$ and $\sigma_k$
-are upper bounds. The systematic part is propagated separately, as a shift
-common to all readings of a channel, and reported for transfer to another
-instrument.
+The dataset declares a single standard uncertainty $u$ per reading, of
+undocumented provenance and therefore evaluated as Type~B. It does not state
+how this uncertainty is correlated between readings, cycles and channels.
+The original budget assumed independent readings,
+$U_x = \mathrm{diag}(u^2)$. The data rule this out: if the whole of $u$
+varied independently from cycle to cycle, the observed cross-cycle standard
+deviation $s$ of each reading could not be smaller than $u$, whereas for the
+pressure, velocity and plain-bearing acceleration channels $u/s$ is $8.8$,
+$4.3$ and $2.1$ (first 100 samples, training cycles). Following
+\cite[3.4.2]{JCGM100}, the measurement model is revised when observed data
+show it to be incomplete, and correlations that are present and significant
+cannot be ignored \cite[5.2.5]{JCGM100}.
+
+We therefore model reading $i$ of channel $k$ in cycle $c$ as
+$x_{c,ki} = \xi_{c,ki} + \varepsilon_{c,ki} + \delta_{ki}$, where
+$\varepsilon_{c,ki}$ is a random error that varies unpredictably between
+replicate cycles and $\delta_{ki}$ a systematic error that remains constant
+over them \cite[2.19, 2.17]{JCGM200}, with
+$u^2 = u_{\mathrm{rand}}^2 + u_{\mathrm{sys}}^2$. As in
+\cite[F.1.2.4]{JCGM100}, the common errors $\delta_{ki}$ are introduced as
+additional input quantities, shared by all cycles and independent between
+channels; equivalently, two cycles measured with the same instrument have
+covariance $u_{\mathrm{sys}}^2$ \cite[5.2.4, F.1.2.3]{JCGM100}. The split
+is a statement about correlation, not about the evaluation method: both
+components inherit the Type~B evaluation of the declared $u$
+\cite[3.3.3, 3.3.4]{JCGM100}. The labels ``random'' and ``systematic'' are
+also relative to the model, since a component's nature ``is conditioned by
+the use made of the corresponding quantity'' \cite[E.3.6]{JCGM100}: here the
+context is a network whose inputs are normalized with statistics fitted on
+the same instrument.
+
+Only $\varepsilon$ contributes to the cross-cycle spread, so
+$s^2 = \mathrm{var}(\xi) + u_{\mathrm{rand}}^2$ and
+$u_{\mathrm{rand}} \le s$; comparing the observed variability only with the
+components that can produce it, kept in a separate group, is the procedure
+of \cite[3.4.3]{JCGM100}. Hence at least $98.7\%$, $93.9\%$ and $74\%$ of
+$u^2$ is common to all cycles for the three channels above. We estimate
+$u_{\mathrm{rand}} = \min(u, s, \sigma_k, \sigma_{\mathrm{ds},k})$, where
+$s$ and the white-noise floor $\sigma_k$ (robust estimate from second
+differences of adjacent samples, cf.~\cite{vonNeumann1941}) are Type~A
+upper bounds, and $\sigma_{\mathrm{ds},k}$ is the noise floor published by
+the manufacturer, available only for the two Kistler 8704B50M1
+accelerometers ($0.004\,g$ rms, Type~B).
+
+The model includes the $z$-score normalization, fitted on the training
+cycles. A systematic error common to all cycles of a column acts as an
+affine map $x' = a + b\,x$ on that column, which shifts and scales the
+training mean and standard deviation in the same way and leaves the
+normalized input, hence the prediction, unchanged. When the same instrument
+is used for training and inference, the sensitivity coefficient of the
+output with respect to $\delta$ is therefore zero and $u_{\mathrm{sys}}$
+does not enter the budget; only $u_{\mathrm{rand}}$ is propagated, with
+$U_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$. For transfer to another
+instrument the normalization no longer absorbs $\delta$, which is then
+propagated with correlation coefficient $+1$ between the readings of a
+channel (cf.\ the series of resistors calibrated against the same standard
+in \cite[5.2.2, Note~1]{JCGM100}), both by the law of propagation of
+uncertainty and by Monte Carlo with correlated inputs
+\cite{JCGM101,JCGM102}. The common shift adds linearly over the readings
+of a channel, instead of in quadrature as an independent error would.
 ```
 
 **LPU vs. MC sentence:**
@@ -476,12 +517,14 @@ coverage $99.3\%$.
 ```latex
 The random part of the input uncertainty is taken as independent between
 readings, $U_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$; the systematic part
-as fully correlated within a channel and independent between channels.
+as fully correlated within a channel and independent between channels
+\cite[5.2.4, F.1.2.3]{JCGM100}.
 The systematic part is assumed constant over the whole run-to-failure
 experiment; a drift that varies with the cycle index would not cancel in the
 normalization and would be confounded with the measurand. Label uncertainty
 is negligible by construction ($y_k = k/N$). Monte Carlo propagation followed
-GUM Supplement~1 with Gaussian inputs and $M = 10^4$ samples. The point
+GUM Supplement~1 \cite{JCGM101} with Gaussian inputs and $M = 10^4$
+samples. The point
 estimate is the network output $f(x)$; the Monte Carlo mean differs from it
 by $0.010$ on average.
 ```
@@ -513,6 +556,70 @@ Combined, transfer to another instrument & \textemdash & $0.788$ & \\
 ```
 
 Combined values are means of the per-cycle $u_c$, so they differ slightly from the quadrature sum of the column means.
+
+**BibTeX entries for the citations above** (clause numbers verified against the official BIPM editions of JCGM 100:2008 and JCGM 200:2012):
+```bibtex
+@techreport{JCGM100,
+  author      = {{JCGM}},
+  title       = {Evaluation of measurement data -- Guide to the expression
+                 of uncertainty in measurement},
+  institution = {Joint Committee for Guides in Metrology},
+  number      = {JCGM 100:2008},
+  year        = {2008}
+}
+@techreport{JCGM101,
+  author      = {{JCGM}},
+  title       = {Evaluation of measurement data -- Supplement 1 to the
+                 ``Guide to the expression of uncertainty in measurement''
+                 -- Propagation of distributions using a Monte Carlo
+                 method},
+  institution = {Joint Committee for Guides in Metrology},
+  number      = {JCGM 101:2008},
+  year        = {2008}
+}
+@techreport{JCGM102,
+  author      = {{JCGM}},
+  title       = {Evaluation of measurement data -- Supplement 2 to the
+                 ``Guide to the expression of uncertainty in measurement''
+                 -- Extension to any number of output quantities},
+  institution = {Joint Committee for Guides in Metrology},
+  number      = {JCGM 102:2011},
+  year        = {2011}
+}
+@techreport{JCGM200,
+  author      = {{JCGM}},
+  title       = {International vocabulary of metrology -- Basic and general
+                 concepts and associated terms ({VIM}), 3rd edition},
+  institution = {Joint Committee for Guides in Metrology},
+  number      = {JCGM 200:2012},
+  year        = {2012}
+}
+@article{vonNeumann1941,
+  author  = {von Neumann, J. and Kent, R. H. and Bellinson, H. R. and Hart,
+             B. I.},
+  title   = {The mean square successive difference},
+  journal = {The Annals of Mathematical Statistics},
+  volume  = {12},
+  number  = {2},
+  pages   = {153--162},
+  year    = {1941}
+}
+```
+
+Clauses used, and what each supports:
+
+| Clause | Content | Used for |
+|---|---|---|
+| GUM 3.3.3, 3.3.4 | Type A/B classify the evaluation method, "not substitutes for the words random and systematic" | the split leaves both components Type B |
+| GUM 3.4.2 | revise the model when observed data show it is incomplete | $u > s$ falsifies $U_x = \mathrm{diag}(u^2)$ |
+| GUM 3.4.3 and Note | compare observed variability only with the components that can produce it, grouped separately | $u_{\mathrm{rand}} \le s$ |
+| GUM 5.2.2, Note 1 and Example | readings tied to the same standard have $r = +1$; the contributions add linearly | transfer term, common shift per channel |
+| GUM 5.2.4 | correlation when the same instrument is used | common component across cycles |
+| GUM 5.2.5 | significant correlations cannot be ignored; Type B evaluation of covariance | why the split is needed |
+| GUM F.1.2.3 (Eq. F.2), F.1.2.4 | covariance from shared quantities; common quantities as extra independent inputs | $\delta_{ki}$ as additional inputs |
+| GUM E.3.6, E.3.7 | a component is not intrinsically random or systematic, its nature depends on the model | labels relative to the normalization |
+| VIM 2.17, 2.19 | systematic / random measurement error | definition of $\delta$ and $\varepsilon$ |
+| JCGM 101, JCGM 102 | Monte Carlo propagation, multivariate and correlated inputs | MC with per-channel common draw |
 
 ---
 

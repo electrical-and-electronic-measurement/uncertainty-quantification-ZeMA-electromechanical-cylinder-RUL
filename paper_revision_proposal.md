@@ -121,26 +121,49 @@ Il caso di studio ha fatto emergere tre elementi che la metodologia non prevede 
 
 ### 5.1 Phase 2 — *Data Uncertainty Sources*
 
-**Cosa cambiare.** Aggiungere un paragrafo dopo quello su *Input data uncertainty*.
+**Cosa cambiare.** Aggiungere due paragrafi dopo quello su *Input data uncertainty*. Il ragionamento va reso esplicito con i riferimenti puntuali alla GUM e al VIM (clausole verificate sulle edizioni ufficiali BIPM di JCGM 100:2008 e JCGM 200:2012). Le chiavi `JCGM100`, `JCGM102` e `JCGM200` sono da aggiungere al `.bib` del paper accanto a `JCGM101`, che la bozza usa già; le voci BibTeX sono in `case_study_A_report.md` §11.1. Nel `.bib` della tesi (`JCGM-documents.bib`) le stesse voci si chiamano `JCGMGUM-guide-to-uncertainty-in-measurement`, `JCGM102-GUM-supplement2` e `JCGMVIM3-International-vocabulary-of-metrology`.
 
 ```latex
-The declared standard uncertainty $u(x_i)$ of an input generally combines a
-random component, which varies between observations, and a systematic
-component, common to all observations made with the same instrument:
-$u^2 = u_{\mathrm{rand}}^2 + u_{\mathrm{sys}}^2$. The two must be treated
-differently. When the same instrument is used for training and inference, a
-systematic error common to all observations is learned with the data; in
-particular, an offset or gain error common to all observations is removed
-exactly by a normalization fitted on the training data. Only the random
-component then contributes to the uncertainty of the prediction, while the
-systematic component becomes relevant when the model is deployed with a
-different instrument. If the data source does not separate the two
-components, the cross-observation standard deviation $s$ of an input
-provides a data-based upper bound, $u_{\mathrm{rand}} \le s$, since
-$s^2 = \mathrm{var}(\text{true}) + u_{\mathrm{rand}}^2$; a declared $u$ larger
-than $s$ indicates that most of it is systematic. This treatment assumes that
-the systematic component is constant over the data set; a drift correlated
-with the measurand would not cancel and would be confounded with it.
+The declared standard uncertainty $u(x_i)$ of an input does not, in general,
+say how the underlying errors are correlated between observations. In the
+terms of the VIM, the error of an observation combines a random component,
+which varies unpredictably between replicate observations, and a systematic
+component, which remains constant over them \cite[2.19, 2.17]{JCGM200}:
+$u^2 = u_{\mathrm{rand}}^2 + u_{\mathrm{sys}}^2$. The systematic component
+is common to all observations made with the same instrument, which makes
+these observations correlated \cite[5.2.4]{JCGM100}; equivalently, it can
+be introduced as an additional input quantity shared by all of them
+\cite[F.1.2.3, F.1.2.4]{JCGM100}. Such correlations cannot be ignored when
+they are significant \cite[5.2.5]{JCGM100}. The split concerns the
+correlation structure, not the method of evaluation: the Type~A/B
+classification ``is not meant to indicate that there is any difference in
+the nature of the components'' \cite[3.3.4]{JCGM100} and is not a
+substitute for the words random and systematic \cite[3.3.3]{JCGM100}.
+Whether a component acts as random or systematic depends on the measurement
+model in which the quantity is used \cite[E.3.6]{JCGM100}, and for a
+learned model this includes the preprocessing fitted on the training data.
+
+When the same instrument is used for training and inference, a systematic
+error common to all observations of an input enters the training data and
+the inference data in the same way. An offset or gain error, in particular,
+is an affine map of that input, which a normalization fitted on the training
+data removes exactly: the sensitivity of the prediction to it is zero, and
+only the random component contributes to the uncertainty of the prediction.
+The systematic component becomes relevant when the model is deployed with a
+different instrument, where it is propagated as a shift fully correlated
+between the observations of an input (correlation coefficient $+1$,
+\cite[5.2.2, Note~1]{JCGM100}). If the data source does not separate the
+two components, the data constrain them: only the random component can
+contribute to the observed variability between observations, so it is
+compared with that variability as a separate group \cite[3.4.3]{JCGM100},
+and the cross-observation standard deviation $s$ of an input gives the
+upper bound $u_{\mathrm{rand}} \le s$, since
+$s^2 = \mathrm{var}(\text{true}) + u_{\mathrm{rand}}^2$. A declared $u$
+larger than $s$ shows that a model of independent observations is
+incomplete and must be revised \cite[3.4.2]{JCGM100}: most of $u$ is then
+systematic. This treatment assumes that the systematic component is
+constant over the data set; a drift correlated with the measurand would not
+cancel and would be confounded with it.
 ```
 
 ### 5.2 Phase 4 — Eq. (combined) e notazione
@@ -262,7 +285,7 @@ fixed.
 - "11 × 100 readings per cycle" va precisato: sono i **primi 100 campioni (primi 50 ms)** della finestra di 1 s della corsa di ritorno a 2 kHz, perché `ZeMASamples` prende i primi *d* campioni e non *d* campioni distribuiti sulla finestra (dataset report §7).
 - Gli accelerometri sono **tre sensori distinti** (plain bearing, piston rod, ball bearing), non gli assi x/y/z di un solo sensore.
 - Split: training 3242, validation 571, test 953 (non "80% training, 953 for validation": i 953 cicli sono il test set).
-- Aggiungere l'interpretazione dell'incertezza in ingresso (testo validato in report §11.1).
+- Aggiungere il modello dell'incertezza in ingresso, con i riferimenti GUM/VIM: qui la versione per il caso di studio, che rimanda alla Sezione 4 per il ragionamento generale (§5.1 di questo documento). `case_study_A_report.md` §11.1 ne contiene la versione estesa e autonoma, con la tabella delle clausole citate.
 - Correggere "softplus was trained with double precision in 80%…".
 
 **Testo proposto** (sostituisce l'intera §5.1):
@@ -282,29 +305,40 @@ the measurement model, so GUM propagation through it is exact,
 $u(x') = u(x)/\sigma_{\text{train}}$. The point estimate is the output
 $f(\mathbf{x})$ of the reference ensemble member.
 
-\textit{Input-uncertainty interpretation.} The data set declares a single
-standard uncertainty $u$ per reading, without separating random and
-systematic components (Section~\ref{sec:Uncertainty_sources_ML}). For the
-pressure, velocity and plain-bearing acceleration channels $u/s$ is $8.8$,
-$4.3$ and $2.1$ (training cycles), so at least $98.7\%$, $93.9\%$ and $74\%$
-of $u^2$ is common to all cycles. A systematic error common to all cycles is
-an affine map per reading, which the $z$-score normalization removes exactly
-when the same instrument is used for training and inference. We therefore
-propagate only the random part, estimated as
-$u_{\mathrm{rand}} = \min(u, s, \sigma_k, \sigma_{\mathrm{ds},k})$, with
-$\sigma_k$ the white-noise floor of channel $k$ from second differences of
-adjacent samples and $\sigma_{\mathrm{ds},k}$ the noise floor published by the
-manufacturer. The latter exists only for the two Kistler 8704B50M1
-accelerometers ($0.004\,g$ rms); for the other channels $s$ and $\sigma_k$
-are upper bounds. The random part is taken as independent between readings,
-$\mathbf{U}_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$. The systematic part is
-propagated separately, as a shift fully correlated within a channel and
-independent between channels, and reported for transfer to another
-instrument.
+\textit{Input-uncertainty model.} The data set declares a single
+standard uncertainty $u$ per reading, evaluated as Type~B, without stating
+its correlation between readings, cycles and channels. Independent readings
+would require the cross-cycle standard deviation $s$ of each reading to be
+at least $u$; for the pressure, velocity and plain-bearing acceleration
+channels $u/s$ is instead $8.8$, $4.3$ and $2.1$ (first 100 samples,
+training cycles), so the independence model used in a first evaluation is
+falsified by the data \cite[3.4.2]{JCGM100}. Following
+Section~\ref{sec:Uncertainty_sources_ML}, reading $i$ of channel $k$ in
+cycle $c$ is modelled as
+$x_{c,ki} = \xi_{c,ki} + \varepsilon_{c,ki} + \delta_{ki}$, with a random
+error $\varepsilon$ that varies between cycles and a systematic error
+$\delta$ common to all cycles \cite[2.19, 2.17]{JCGM200}, introduced as an
+additional input quantity per reading, independent between channels
+\cite[5.2.4, F.1.2.4]{JCGM100}. Since only $\varepsilon$ contributes to the
+cross-cycle spread \cite[3.4.3]{JCGM100}, $u_{\mathrm{rand}} \le s$, and
+at least $98.7\%$, $93.9\%$ and $74\%$ of $u^2$ is common to all cycles for
+the three channels. We estimate
+$u_{\mathrm{rand}} = \min(u, s, \sigma_k, \sigma_{\mathrm{ds},k})$, where
+$s$ and the white-noise floor $\sigma_k$ (robust estimate from second
+differences of adjacent samples) are Type~A upper bounds and
+$\sigma_{\mathrm{ds},k}$ is the noise floor published by the manufacturer,
+available only for the two Kistler 8704B50M1 accelerometers ($0.004\,g$
+rms, Type~B). Because the $z$-score normalization is fitted on the training
+cycles of the same instrument, $\delta$ cancels and only the random part is
+propagated, $\mathbf{U}_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$. For
+transfer to another instrument, $\delta$ is propagated in addition, with
+correlation coefficient $+1$ within a channel \cite[5.2.2, Note~1]{JCGM100}
+and independently between channels, and reported separately.
 
 Following Phase~4, $\mathbf{U}_x$ is propagated layer by layer through the
 trained MLP (Eq.~\eqref{eq:Law_of_Propagation_of_Uncertainty_for_NN}) and
-independently by Monte Carlo simulation per GUM Supplement~1~\cite{JCGM101},
+independently by Monte Carlo simulation per GUM Supplement~1~\cite{JCGM101}
+(with correlated inputs for the transfer case~\cite{JCGM102}),
 with Gaussian input distributions and $M = 10^4$ samples per test cycle. The
 training-process contribution $u_{\mathrm{training}}$ is the standard
 deviation of the predictions of a 10-seed ensemble (optimization variability

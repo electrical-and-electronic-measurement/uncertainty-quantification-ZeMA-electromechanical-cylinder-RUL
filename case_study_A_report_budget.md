@@ -44,6 +44,19 @@ Resulting split (share of *u*², baseline input):
 | Axial force | 0.22 | 100% | 17.4% | 17.4% |
 | Active current, motor currents, sound pressure | ≤ 0.17 | 100% | 100% | 100% |
 
+### 2.1.1 Basis in the GUM
+
+The split does not introduce a new kind of uncertainty. It specifies the correlation structure of the declared input uncertainty, which the dataset leaves unstated:
+
+- **Model.** Reading = true value + random error ε (varies between replicate cycles, VIM 2.19) + systematic error δ (constant over them, VIM 2.17). The δ are treated as additional input quantities common to all cycles (GUM F.1.2.4), i.e. covariance *u*_sys² between cycles measured with the same instrument (GUM 5.2.4, F.1.2.3).
+- **Why it is needed.** Independent readings imply *s* ≥ *u*; the data show *s* < *u*, so the independence model is falsified and must be revised (GUM 3.4.2); significant correlations cannot be ignored (GUM 5.2.5).
+- **Why *u*_rand ≤ *s*.** Only the components that can produce the observed variability are compared with it, as a separate group (GUM 3.4.3 and Note).
+- **Type.** Both parts keep the Type B evaluation of the declared *u*: Type A/B classify the evaluation method, not the random or systematic nature (GUM 3.3.3, 3.3.4). The data-based caps *s* and σ_k are Type A.
+- **Context dependence.** Whether a component is random or systematic depends on the model in which the quantity is used (GUM E.3.6, E.3.7); here the model includes a normalization fitted on the same instrument, which absorbs δ.
+- **Transfer.** δ is propagated with *r* = +1 within a channel, like the resistors calibrated against the same standard in GUM 5.2.2, Note 1.
+
+The paper-ready version of this argument, with citations, is in `case_study_A_report.md` §11.1.
+
 ### 2.2 Budget
 
 - **Same-instrument use** (the case study's setting): only *u*_rand is propagated, as independent per-sample noise.

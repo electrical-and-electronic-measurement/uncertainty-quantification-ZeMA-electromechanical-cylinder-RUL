@@ -93,7 +93,49 @@ interpretation of the input uncertainties declared with the data set,
 
 ---
 
-## 3. Sezione 2 — LPU per reti neurali (§2.2 Linearity)
+## 3. Sezione 2 — LPU per reti neurali (§2.1 Figura 1, §2.2 Linearity)
+
+### 3.1 Figura 1 (neurone e MLP)
+
+**Cosa cambiare.** Sostituire l'immagine presa da Carratù et al. (`NN_neuron_with_bias.png`, nota verde "LICENZA OPEN, MA MEGLIO RIFARE") con `paper_figures/nn_neuron_lpu.pdf` di questo repository. La nuova figura è disegnata in TikZ con la notazione della Sezione 2:
+
+- $\sigma_i$ è la funzione di attivazione, come chiede la nota verde;
+- $\mathbf{W}_i$ e $\mathbf{b}_i$ sono pesi e bias del layer $i$ (elementi $W_{i,jk}$ e $b_{i,j}$);
+- $\mathbf{x}^{(i)}$ è l'uscita del layer $i$, con $\mathbf{x}^{(0)} = \mathbf{x}$ e $\mathbf{x}^{(L)} = \mathbf{y}$;
+- $\mathbf{H}_i$ è definita come nell'Eq.~(H_i_definition).
+
+Il pannello (a) mostra il neurone $j$ del layer $i$, con la preattivazione $z_{i,j}$ e il coefficiente di sensibilità $\sigma_i'(z_{i,j})\,W_{i,jk}$. Il pannello (b) mostra l'MLP con lo stesso neurone evidenziato e, sotto, la propagazione layer per layer della matrice di covarianza dell'Eq.~(Law_of_Propagation_of_Uncertainty_for_NN). In dimensione naturale la figura misura 18,7 × 8,4 cm: va inclusa con `width=\linewidth`. Compila con `pdflatex` semplice.
+
+**Coerenza dei simboli** (nota verde "attenzione alla definizione dei simboli sotto"):
+- il testo che precede l'equazione scrive $\mathbf{H}(i)$ e $\mathbf{W}(i)$, mentre le equazioni usano $\mathbf{H}_i$ e $\mathbf{W}_i$: uniformare il testo alla forma con pedice;
+- definire $L$ come numero di layer e $\mathbf{x}^{(0)} = \mathbf{x}$, $\mathbf{x}^{(L)} = \mathbf{y}$, che la figura usa.
+
+**Testo proposto**:
+
+```latex
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{nn_neuron_lpu.pdf}
+    \caption{(a) Artificial neuron $j$ of layer $i$: the outputs
+    $x^{(i-1)}_k$ of the previous layer are weighted by $W_{i,jk}$ and summed
+    with the bias $b_{i,j}$ into the preactivation $z_{i,j}$, which the
+    activation function $\sigma_i$ maps to the output $x^{(i)}_j$; the
+    sensitivity coefficient of $x^{(i)}_j$ with respect to $x^{(i-1)}_k$ is
+    $\sigma_i'(z_{i,j})\,W_{i,jk}$. (b) Multilayer perceptron with input
+    $\mathbf{x}^{(0)} = \mathbf{x}$ and output $\mathbf{x}^{(L)} = \mathbf{y}$;
+    neuron $j$ of panel (a) and its incoming weights are highlighted. The
+    covariance matrix of the input estimates is propagated layer by layer,
+    each layer contributing the sensitivity matrix $\mathbf{H}_i\mathbf{W}_i$
+    (Eqs.~\eqref{eq:Law_of_Propagation_of_Uncertainty_for_NN}
+    and~\eqref{eq:H_i_definition}), so that $\mathbf{U}_{\mathbf{y}} =
+    \mathbf{C}\mathbf{U}_{\mathbf{x}}\mathbf{C}^{\top}$ with
+    $\mathbf{C} = \mathbf{H}_L\mathbf{W}_L\cdots\mathbf{H}_1\mathbf{W}_1$
+    (Eq.~\eqref{eq:measurement_covariance_matrix}).}
+    \label{fig:Schematic_representation_artificial_neuron}
+\end{figure}
+```
+
+### 3.2 §2.2 Linearity
 
 **Cosa cambiare.** Nessuna modifica di sostanza. Facoltativo: aggiungere una frase alla fine dell'ultimo paragrafo (dopo il risultato di Lin et al.).
 

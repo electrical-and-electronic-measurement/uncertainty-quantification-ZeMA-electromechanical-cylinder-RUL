@@ -67,8 +67,9 @@ uncertainty as independent per-sample noise. The data show that most of it
 must be common to all cycles (`u > s` for Pressure, Velocity, plain-bearing
 acceleration), and a systematic error common to all cycles cancels exactly in
 the z-score normalization when the same instrument is used for training and
-inference. Splitting `u` into random and systematic parts, propagating only the
-random part, adding a validation-based `u_calibration` and combining with Monte Carlo
+inference. Splitting `u` into random and systematic parts (a choice of input covariance
+consistent with GUM 3.4.3, 5.2.4, F.1.2.3–F.1.2.4 and E.3.6; see
+`case_study_A_report_budget.md` §2.1.1), propagating only the random part, adding a validation-based `u_calibration` and combining with Monte Carlo
 gives `u_c ≈ 0.11–0.14` instead of ≈0.98. LPU and MC then agree within 4–7%,
 and `u_c` is 2.3–2.9× the mean error instead of 21×. Coverage at k=2 is
 still 99.5–99.9%, because the data-based estimates of the random part are upper

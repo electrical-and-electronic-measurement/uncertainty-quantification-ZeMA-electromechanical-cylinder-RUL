@@ -231,7 +231,45 @@ the stationarity assumption under which the systematic component cancels.
 
 ### 5.5 Figura 2 (decision tree)
 
-La figura è già segnata "SISTEMARE IL DIAGRAMMA". Nella nuova versione, aggiungere dalla Fase 5 un ramo "over-coverage / LPU–MC discrepancy → review input-uncertainty model (Phase 2)", accanto ai due ritorni esistenti, e aggiornare la didascalia.
+**Cosa cambiare.** Sostituire `decision_tree.tex`/`decision_tree.pdf` con la versione in `paper_figures/` di questo repository. La figura attuale è marcata "SISTEMARE IL DIAGRAMMA". In dimensione naturale è alta circa 50 cm, quindi con `width=0.6\linewidth` diventa illeggibile; inoltre usa ancora la notazione $u_A$/$u_B$ e non compila senza la classe `standalone`. La nuova versione:
+
+- è impaginata su **due colonne**: Fasi 1–3 a sinistra, Fasi 4–5 a destra. In dimensione naturale misura 17,5 × 16,7 cm, quindi sta su una pagina con `width=\linewidth`;
+- **Fase 1**: dichiara l'uso previsto (stesso strumento del training o un altro strumento);
+- **Fase 2**: nuovo nodo "la correlazione della *u* d'ingresso è dichiarata?". Se no, si confronta *u* con la dispersione *s*, si scompone *u*² = *u*_rand² + *u*_sys² con *u*_rand ≤ *s* e si citano GUM 5.2.4 e F.1.2.4;
+- **Fase 4**: usa le Eq. (combined)/(model_uncertainty_decomposition) del paper invece di $u_A$/$u_B$, più un nodo "uso previsto": stesso strumento → solo *u*_rand; altro strumento → anche *u*_sys, riportati separatamente;
+- **Fase 5**: aggiunge il test indipendente (hold-out a blocchi per dati indicizzati nel tempo o nel ciclo) e il controllo dei residui. Il disaccordo LPU/MC passa prima per il nodo "modello d'ingresso coerente?". La copertura si verifica a *k* = 1 e *k* = 2, in entrambe le direzioni;
+- **ritorni di validazione**: tre connettori con lettera (A → Fase 3, B e C → Fase 2) al posto delle lunghe linee tratteggiate;
+- compila con `pdflatex` semplice: il ritaglio della pagina è nel file, non serve `standalone`.
+
+I numeri di sezione nella figura (Sec.~4.1–4.5, Sec.~3) e l'etichetta "Eq.~LPU-for-NN" sono testo fisso, come nella versione attuale: vanno aggiornati se cambia la numerazione.
+
+**Testo proposto** (ambiente `figure` della Sezione 4):
+
+```latex
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\linewidth]{decision_tree.pdf}
+    \caption{Decision-tree overview of the five-phase methodology. Phase~1
+    branches the task into a regression track (blue) or a classification
+    track (orange, Section~\ref{sec:extending_GUM_to_Nominal_Properties}) and
+    declares the intended use of the model. Phase~2 checks whether the
+    correlation structure of the declared input uncertainty is stated; if not,
+    the declared $u$ is compared with the spread $s$ between observations and
+    split into a random and a systematic component
+    (Section~\ref{sec:Uncertainty_sources_ML}). Phase~3 applies the three
+    propagation-method criteria (model accessibility, architectural and
+    differentiability compatibility, computational constraints). Phase~4
+    combines the contributions of Eqs.~\eqref{eq:combined_std_uncertainty}
+    and~\eqref{eq:model_uncertainty_decomposition}, propagating the systematic
+    input component only when the model is deployed with a different
+    instrument. Phase~5 validates on independent data; its returns (dashed,
+    connectors A--C) lead to Phase~3 when the linearity assumption is violated
+    and the input model is consistent (A), and to Phase~2 when the input model
+    is inconsistent (B) or the empirical coverage departs from the nominal
+    value in either direction (C).}
+    \label{fig:decision_tree}
+\end{figure}
+```
 
 ---
 

@@ -313,6 +313,45 @@ I numeri di sezione nella figura (Sec.~4.1–4.5, Sec.~3) e l'etichetta "Eq.~LPU
 \end{figure}
 ```
 
+
+### 5.6 Figura 3 (scomposizione dell'incertezza)
+
+**Cosa cambiare.** Sostituire `measurement_uncertainty_decomposition.png` (nota verde "RIFARE IMMAGINE") con `paper_figures/uncertainty_decomposition.pdf` di questo repository. L'albero ha due macro-componenti, come nel paragrafo rosso che precede la figura (Angrisani et al.). Ogni ramo riporta nell'intestazione l'equazione corrispondente del paper:
+- incertezza della grandezza fisica: $\mathbf{U}_{\mathbf{y}} = \mathbf{C}\mathbf{U}_{\mathbf{x}}\mathbf{C}^{\top}$ (Eq. measurement_covariance_matrix);
+- incertezza del modello di misura: Eq. (model_uncertainty_decomposition).
+
+Ogni contributo è collegato al proprio termine:
+- dati di training finiti e non rappresentativi: non hanno un termine proprio e agiscono attraverso gli altri;
+- variabilità del processo di training: $u_{\mathrm{training}}$, da un ensemble di seed (Type A);
+- selezione del modello e dell'architettura: $u_{\mathrm{architecture}}$;
+- effetti di approssimazione e generalizzazione: $u_{\mathrm{calibration}}$, da valori di riferimento e dal validation set.
+
+Nel ramo fisico, le correlazioni d'ingresso richiamano le componenti casuale e sistematica di Fase 2. In dimensione naturale la figura misura 14,2 × 8,4 cm: `width=0.9\linewidth` va bene. Compila con `pdflatex` semplice.
+
+Il paragrafo rosso dice che l'incertezza del modello è scomposta in "training process, selection and architecture, approximation and validation"; la figura usa la stessa suddivisione. Va invece allineata l'Eq. (combined_std_uncertainty) commentata nella bozza, che usa ancora $u_{\mathrm{generalization}}$: va eliminata, oppure rinominata $u_{\mathrm{calibration}}$.
+
+**Testo proposto**:
+
+```latex
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.9\linewidth]{uncertainty_decomposition.pdf}
+    \caption{Components of the measurement uncertainty of ML-based
+    measurement systems. The physical-quantity uncertainty
+    $u_{\mathrm{physical}}$ arises from the input quantities, including their
+    correlations, and is propagated through the learned measurement function
+    (Eq.~\eqref{eq:measurement_covariance_matrix}); the measurement-model
+    uncertainty $u_{\mathrm{model}}$ arises from inferring that function from
+    finite data and is decomposed as in
+    Eq.~\eqref{eq:model_uncertainty_decomposition}. Finite and
+    non-representative training data has no term of its own: it acts through
+    the training-process variability and through the approximation and
+    generalization effects that calibration against reference values
+    characterizes.}
+    \label{fig:measurement_uncertainty_decomposition}
+\end{figure}
+```
+
 ---
 
 ## 6. Sezione 5 — Caso di studio (riscrittura)

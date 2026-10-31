@@ -112,6 +112,7 @@ the budget conclusions unchanged (§3.2 of that report).
 | [export_notebooks_to_pdf.py](export_notebooks_to_pdf.py) | Renders the EDA notebooks to the PDFs above with wrapped code lines (plain `nbconvert --to webpdf` clips long lines). Needs `nbconvert` + `playwright` (`playwright install chromium`) on top of `requirements.txt`. |
 | [paper_figures/nn_neuron_lpu.tex](paper_figures/nn_neuron_lpu.tex) / [.pdf](paper_figures/nn_neuron_lpu.pdf) | New Figure 1 of the paper (`fig:Schematic_representation_artificial_neuron`): (a) artificial neuron of layer *i*, (b) MLP with layer-wise covariance propagation, in the paper's notation (σ_i, **W**_i, **b**_i, **x**^(i), **H**_i). Caption in `paper_revision_proposal.md` §3.1. |
 | [paper_figures/decision_tree.tex](paper_figures/decision_tree.tex) / [.pdf](paper_figures/decision_tree.pdf) | Revised Figure 2 of the paper (`fig:decision_tree`, five-phase methodology), aligned with the corrected budget; compiles with plain `pdflatex`. Caption and changes in `paper_revision_proposal.md` §5.5. |
+| [paper_figures/uncertainty_decomposition.tex](paper_figures/uncertainty_decomposition.tex) / [.pdf](paper_figures/uncertainty_decomposition.pdf) | New Figure 3 of the paper (`fig:measurement_uncertainty_decomposition`): physical-quantity and measurement-model uncertainty with their contributions and the paper's symbols (`u_physical`, `u_training`, `u_architecture`, `u_calibration`). Caption in `paper_revision_proposal.md` §5.6. |
 
 ### Real result artifacts
 

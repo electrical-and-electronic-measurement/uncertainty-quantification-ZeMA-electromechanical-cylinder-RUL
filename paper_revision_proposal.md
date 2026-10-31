@@ -352,6 +352,39 @@ Il paragrafo rosso dice che l'incertezza del modello è scomposta in "training p
 \end{figure}
 ```
 
+
+### 5.7 Figura 4 (processo di misura assistito da ML)
+
+**Cosa cambiare.** Sostituire `ML_assisted_process.jpg` (nota verde "RIFARE DISEGNO TRATTO DA SEMINARIO IEEE") con `paper_figures/ml_assisted_process.pdf` di questo repository. La figura è un nuovo disegno dello stesso schema della slide "Full cycle" del corso IEEE I&M Society di S. Shirmohammadi, *Quantifying Uncertainty in Machine Learning-Assisted Measurements*: misura → dataset → modello ML → misura indiretta. Rispetto alla slide:
+- usa la notazione del paper: $\{(\mathbf{x}_n, y_n)\}$, $\hat f$ stima di $f$, $\hat y = \hat f(\mathbf{x})$;
+- aggiunge la misura delle grandezze d'ingresso all'inferenza ($\mathbf{x}$, $\mathbf{U}_{\mathbf{x}}$). È questo che collega la data uncertainty a $u_{\mathrm{physical}}$;
+- collega i due gruppi (data/aleatoric, model/epistemic) ai termini $u_{\mathrm{physical}}$ e $u_{\mathrm{model}}$ dell'Eq. (combined_std_uncertainty), con gli stessi colori della Figura 3.
+
+In dimensione naturale la figura misura 17,2 × 8,1 cm: va inclusa con `width=\linewidth`. Compila con `pdflatex` semplice.
+
+**Attribuzione.** Il disegno è nuovo, ma lo schema viene dalla slide: la didascalia lo indica come adattato. La chiave `shirmohammadi2021ml_part1` è già nella bibliografia della bozza. Va verificato se lo schema compare anche in quell'articolo (IEEE I&M Magazine, 2021); in caso contrario, citare il corso IEEE.
+
+**Nota sul contenuto.** La slide fa coincidere la data uncertainty con l'aleatorietà, ma include anche il bias (effetti sistematici); la Sezione 4.2 del paper definisce invece l'incertezza aleatoria come casualità intrinseca. La figura mantiene l'etichetta della slide tra parentesi. Se si preferisce evitare la sovrapposizione con la definizione della Sezione 4.2, basta togliere "(aleatoric)" ed "(epistemic)".
+
+**Testo proposto**:
+
+```latex
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{ml_assisted_process.pdf}
+    \caption{ML-assisted measurement process, adapted
+    from~\cite{shirmohammadi2021ml_part1}. A measurement campaign produces
+    the data set on which the model $\hat f$, an estimate of the measurement
+    function $f$, is trained; at inference, $\hat f$ maps the measured input
+    quantities $\mathbf{x}$ to the indirect measurement $\hat y$. The noise
+    and bias of the measurements (data uncertainty) are propagated through
+    $\hat f$ as $u_{\mathrm{physical}}$; the inexactness of $\hat f$ (model
+    uncertainty) is evaluated as $u_{\mathrm{model}}$
+    (Eq.~\eqref{eq:combined_std_uncertainty}).}
+    \label{fig:ML_assisted_process}
+\end{figure}
+```
+
 ---
 
 ## 6. Sezione 5 — Caso di studio (riscrittura)

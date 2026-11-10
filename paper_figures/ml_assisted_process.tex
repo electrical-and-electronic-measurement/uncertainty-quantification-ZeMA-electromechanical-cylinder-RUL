@@ -1,22 +1,29 @@
 % Figure~\ref{fig:ML_assisted_process}
-% (Section 4, Phase 2: ML-assisted measurement process).
+% (Section 4, Phase 2: ML-assisted measurement process and components of the
+% measurement uncertainty of ML-based measurement systems).
 %
-% Replaces ML_assisted_process.jpg, a drawing taken from an IEEE I&M Society
-% course slide (S. Shirmohammadi, "Quantifying Uncertainty in Machine
-% Learning-Assisted Measurements"). Same flow, redrawn in the notation of the
-% paper: measurement -> dataset -> trained model \hat f (estimate of f) ->
-% indirect measurement \hat y = \hat f(x); the input quantities measured at
-% inference are added, so that the two uncertainty groups connect to
-% u_physical and u_model of Figure 3.
+% Merges the former ml_assisted_process.tex (process chain) and
+% uncertainty_decomposition.tex (tree of contributions) into one figure:
+%   top    - measurement -> dataset -> trained model \hat f -> indirect
+%            measurement \hat y = \hat f(x), with the inputs measured at
+%            inference;
+%   bottom - uncertainty of \hat y split into the two macro-components and
+%            their contributions; symbols as in Eqs. (combined_std_uncertainty)
+%            and (model_uncertainty_decomposition):
+%              u_c^2 = u_physical^2 + u_model^2,
+%              u_model^2 = u_training^2 + u_architecture^2 + u_calibration^2.
+% Finite and non-representative training data has no term of its own (dashed
+% leaf): it acts through u_training and u_calibration.
 %
 % Compiles with plain pdflatex to a tightly-cropped vector PDF.
-% Okabe-Ito colours as in Figure 3: bluish green = data / input quantities,
-% reddish purple = model.
+% Okabe-Ito colours: bluish green = measured quantities / physical-quantity
+% branch (as the covariance propagation in Figure 1), reddish purple = model /
+% measurement-model branch.
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric, decorations.pathreplacing}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
 
 \definecolor{okGreen}{HTML}{009E73}
 \definecolor{okPurple}{HTML}{CC79A7}
@@ -30,11 +37,14 @@
 
 \newcommand{\vx}{\mathbf{x}}
 \newcommand{\fhat}{\hat{f}}
+\newcommand{\uphys}{u_{\mathrm{physical}}}
+\newcommand{\umodel}{u_{\mathrm{model}}}
 
 \begin{document}
 \begin{lrbox}{\figbox}%
 \begin{tikzpicture}[
   font=\sffamily\footnotesize,
+  % --- process chain ---
   meas/.style={ellipse, draw=okGreen!80!black, thick, fill=okGreen!10,
     text width=24mm, align=center, inner sep=1mm, minimum height=13mm, font=\sffamily\small},
   data/.style={rectangle, draw=okGreen!80!black, thick, fill=white,
@@ -46,10 +56,20 @@
   arrow/.style={-{Latex[length=2.2mm,width=1.6mm]}, thick, draw=black!70},
   albl/.style={font=\sffamily\footnotesize, text=black!70, above},
   note/.style={font=\sffamily\scriptsize, text=black!65, align=center},
-  group/.style={rectangle, rounded corners=2pt, thick, align=left, inner sep=1.8mm,
-    font=\sffamily\footnotesize},
+  % --- uncertainty tree ---
+  root/.style={rectangle, rounded corners=2pt, draw=black!70, thick, fill=black!6,
+    text width=88mm, align=center, inner sep=2mm, font=\sffamily\small},
+  macroP/.style={rectangle, rounded corners=2pt, draw=okGreen!80!black, thick, fill=okGreen!12,
+    text width=72mm, align=center, inner sep=1.8mm, font=\sffamily\small},
+  macroM/.style={rectangle, rounded corners=2pt, draw=okPurple!85!black, thick, fill=okPurple!14,
+    text width=72mm, align=center, inner sep=1.8mm, font=\sffamily\small},
+  leafP/.style={rectangle, rounded corners=2pt, draw=okGreen!80!black, fill=white, thick,
+    text width=62mm, align=left, inner sep=1.5mm, minimum height=8mm},
+  leafM/.style={rectangle, rounded corners=2pt, draw=okPurple!85!black, fill=white, thick,
+    text width=62mm, align=left, inner sep=1.5mm, minimum height=8mm},
+  line/.style={thick, draw=black!60},
 ]
-% ---------------- training chain ----------------
+% ================= process chain =================
 \node[meas]   (m)  at (0,0)    {\textbf{Measurement}\\{\scriptsize reference campaign}};
 \node[data]   (d)  at (4.5,0)  {\textbf{Dataset}\\$\{(\vx_n, y_n)\}$};
 \node[model]  (f)  at (8.6,0)  {\textbf{ML model}\\$\fhat$};
@@ -59,39 +79,69 @@
 \draw[arrow] (d) -- node[albl]{trains} (f);
 \draw[arrow] (f) -- node[albl]{infers} (y);
 
-% annotations under the chain
 \node[note, anchor=north] at ($(m.south)+(0,-1mm)$)
-  {noise (random effects)\\bias (systematic effects)};
+  {random and systematic\\measurement errors};
 \node[note, anchor=south] at ($(f.north)+(0,1mm)$)
-  {$\fhat$ estimates $f$:\\ML bias and variance};
+  {$\fhat$ estimates the\\measurement function $f$};
 
-% ---------------- inputs at inference ----------------
+% inputs at inference
 \node[meas, anchor=north] (mx) at ($(d.south)+(0,-6mm)$)
   {\textbf{Measurement}\\{\scriptsize input quantities $\vx$, $\mathbf{U}_{\vx}$}};
 \draw[arrow] (mx.east) -| (f.south);
 \node[font=\sffamily\footnotesize, text=black!70, anchor=west]
   at ($(f.south |- mx.east)!0.5!(f.south)+(1.5mm,0)$) {inputs at inference};
 
-% ---------------- uncertainty groups ----------------
-\node[group, draw=okGreen!80!black, fill=okGreen!8, anchor=north west, text width=74mm]
-  (gD) at ($(m.west |- mx.south)+(0,-5mm)$)
-  {\textbf{Data uncertainty} (aleatoric): measurement noise and bias, already
-   present in the training data and in the inputs at inference; propagated
-   through $\fhat$ as $u_{\mathrm{physical}}$};
-\node[group, draw=okPurple!85!black, fill=okPurple!8, anchor=north west, text width=74mm]
-  (gM) at ($(gD.north east)+(4mm,0)$)
-  {\textbf{Model uncertainty} (epistemic): $\fhat$ is an inexact estimate
-   of $f$, so the ML error enters every indirectly measured value; evaluated
-   as $u_{\mathrm{model}}$};
+% ================= uncertainty tree =================
+\coordinate (mid) at ($(m.west |- mx.south)!0.5!(y.east |- mx.south)$);
+\node[root, anchor=north] (root) at ($(mid)+(0,-7mm)$)
+  {\textbf{Uncertainty of the indirect measurement}\\[0.5mm]
+   \mbox{$u_c^2(\hat y) = \uphys^2 + \umodel^2$}};
+\draw[arrow] (y.south) |- (root.east);
 
-% combined result
-\node[rectangle, rounded corners=2pt, draw=black!70, thick, fill=black!5, anchor=north,
-      minimum width=152mm, inner sep=1.8mm, font=\sffamily\footnotesize] (uc)
-  at ($(gD.south east)!0.5!(gM.south west)+(0,-6mm)$)
-  {uncertainty of the indirect measurement:\enspace
-   \mbox{$u_c^2(\hat y) = u_{\mathrm{physical}}^2 + u_{\mathrm{model}}^2$}};
-\draw[thick, okGreen!80!black, -{Latex[length=1.8mm]}] (gD.south) -- (gD.south |- uc.north);
-\draw[thick, okPurple!85!black, -{Latex[length=1.8mm]}] (gM.south) -- (gM.south |- uc.north);
+\node[macroP, anchor=north] (P) at ($(root.south)+(-40mm,-9mm)$)
+  {\textbf{Physical-quantity uncertainty}\enspace $\uphys$\\[0.5mm]
+   {\footnotesize input uncertainty propagated through $\fhat$\\[0.3mm]
+    \mbox{$\mathbf{U}_{\mathbf{y}} = \mathbf{C}\,\mathbf{U}_{\mathbf{x}}\,\mathbf{C}^{\top}$}}};
+\node[macroM, anchor=north] (M) at ($(root.south)+(40mm,-9mm)$)
+  {\textbf{Measurement-model uncertainty}\enspace $\umodel$\\[0.5mm]
+   {\footnotesize $\fhat$ is an inexact estimate of $f$\\[0.3mm]
+    \mbox{$\umodel^2 = u_{\mathrm{training}}^2 + u_{\mathrm{architecture}}^2 + u_{\mathrm{calibration}}^2$}}};
+\draw[line] (root.south) -- ++(0,-4.5mm) coordinate (rj);
+\draw[line] (rj -| P.north) -- (rj -| M.north);
+\draw[line, -{Latex[length=1.8mm]}] (rj -| P.north) -- (P.north);
+\draw[line, -{Latex[length=1.8mm]}] (rj -| M.north) -- (M.north);
+
+% ---------------- physical-quantity contributions ----------------
+\coordinate (Ps) at ($(P.south west)+(5mm,0)$);
+\foreach \i/\txt/\note in {%
+  1/{sensor and input uncertainties}/{$u(x_i)$, Type A or Type B},%
+  2/{input correlations}/{covariances in $\mathbf{U}_{\mathbf{x}}$; random and systematic components},%
+  3/{propagation through the learned model}/{LPU or Monte Carlo (GUM-S1)}} {
+  \ifnum\i=1 \coordinate (Pprev) at ($(Ps)+(4mm,-1mm)$); \else \coordinate (Pprev) at ($(P\the\numexpr\i-1\relax.south west)$); \fi
+  \node[leafP, anchor=north west] (P\i) at ($(Pprev)+(0,-3mm)$)
+    {\txt\\[-0.3mm]{\scriptsize\color{black!60}\note}};
+  \draw[line] (Ps |- P\i.west) -- (P\i.west);
+}
+\draw[line] (Ps) -- (Ps |- P3.west);
+
+% ---------------- measurement-model contributions ----------------
+\coordinate (Ms) at ($(M.south west)+(5mm,0)$);
+\foreach \i/\txt/\note in {%
+  1/{training-process variability}/{$u_{\mathrm{training}}$: seed ensemble, Type A},%
+  2/{model and architecture selection}/{$u_{\mathrm{architecture}}$},%
+  3/{approximation and generalization effects}/{$u_{\mathrm{calibration}}$: reference values, validation}} {
+  \ifnum\i=1 \coordinate (Mprev) at ($(Ms)+(4mm,-1mm)$); \else \coordinate (Mprev) at ($(M\the\numexpr\i-1\relax.south west)$); \fi
+  \node[leafM, anchor=north west] (M\i) at ($(Mprev)+(0,-3mm)$)
+    {\txt\\[-0.3mm]{\scriptsize\color{black!60}\note}};
+  \draw[line] (Ms |- M\i.west) -- (M\i.west);
+}
+% training data: no term of its own (dashed leaf)
+\node[leafM, dashed, anchor=north west] (M4) at ($(M3.south west)+(0,-3mm)$)
+  {finite and non-representative training data\\[-0.3mm]
+   {\scriptsize\color{black!60}no term of its own: acts through the terms above}};
+\draw[line, dashed] (Ms |- M4.west) -- (M4.west);
+\draw[line] (Ms) -- (Ms |- M3.west);
+\draw[line, dashed] (Ms |- M3.west) -- (Ms |- M4.west);
 
 \end{tikzpicture}%
 \end{lrbox}%

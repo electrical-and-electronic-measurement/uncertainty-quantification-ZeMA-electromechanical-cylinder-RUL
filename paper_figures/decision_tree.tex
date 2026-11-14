@@ -1,5 +1,5 @@
 % Decision tree / flowchart for Figure~\ref{fig:decision_tree}
-% (Section 4: "Unified Methodology Framework").
+% (Section 4: "A Five-Phase Methodology").
 %
 % Revised version (Oct 2026), aligned with the case-study findings:
 %  - Phase 1 declares the intended use (same instrument as in training, or
@@ -21,7 +21,7 @@
 %
 % Okabe-Ito colours, as in the case-study validation figures
 % (make_validation_figure.py): blue = regression track, orange =
-% classification track and decision nodes.
+% classification track; grey outline = decisions and boxes common to both tracks.
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -44,7 +44,7 @@
   font=\sffamily\scriptsize,
   phase/.style={rectangle, rounded corners=2pt, draw=black!60, thick,
     fill=black!4, text width=68mm, align=center, inner sep=1.8mm, font=\sffamily\footnotesize},
-  decision/.style={chamfered rectangle, chamfered rectangle xsep=2mm, draw=okOrange, thick,
+  decision/.style={chamfered rectangle, chamfered rectangle xsep=2mm, draw=black!60, thick,
     fill=white, text width=27mm, align=center, inner sep=1.2mm, minimum height=8mm},
   outcomeR/.style={rectangle, rounded corners=2pt, draw=okBlue, thick, fill=okBlue!8,
     text width=29mm, align=center, inner sep=1.2mm},
@@ -105,18 +105,18 @@
 \draw[arrow] (split.south) -- (split.south |- p3.north);
 \node[decision, anchor=north] (d2) at ($(p3.south)+(-17mm,-4mm)$) {White-box access?};
 \draw[arrow] (d2.north |- p3.south) -- (d2.north);
-\node[outcomeC, anchor=west] (mcOnly) at ($(d2.east)+(5mm,0)$) {Monte Carlo (GUM-S1) only};
+\node[action, anchor=west] (mcOnly) at ($(d2.east)+(5mm,0)$) {Monte Carlo (GUM-S1) only};
 \draw[arrow] (d2) -- (mcOnly) node[lbl, above]{no};
-\node[decision, anchor=north] (d3) at ($(d2.south)+(0,-4mm)$) {Differentiable feed-forward MLP?};
+\node[decision, anchor=north] (d3) at ($(d2.south)+(0,-4mm)$) {Differentiable at the input estimate? (Sec.~2.2)};
 \draw[arrow] (d2) -- (d3) node[lbl, right]{yes};
-\node[outcomeC, anchor=west] (fixAct) at (mcOnly.west |- d3) {replace activation (softplus/QuadLU) or use MC};
+\node[action, anchor=west] (fixAct) at (mcOnly.west |- d3) {use a smooth activation (softplus/QuadLU) or MC};
 \draw[arrow] (d3) -- (fixAct) node[lbl, above]{no};
 \draw[arrow] (fixAct) -- (mcOnly);
 \node[decision, anchor=north] (d4) at ($(d3.south)+(0,-4mm)$) {Low latency required?};
 \draw[arrow] (d3) -- (d4) node[lbl, right]{yes};
-\node[outcomeR, anchor=west] (lpuOrMc) at (mcOnly.west |- d4) {LPU or MC both feasible; LPU enables the Phase-5 cross-check};
+\node[action, anchor=west] (lpuOrMc) at (mcOnly.west |- d4) {LPU or MC both feasible; LPU enables the Phase-5 cross-check};
 \draw[arrow] (d4) -- (lpuOrMc) node[lbl, above]{no};
-\node[outcomeR, anchor=north] (lpuPrimary) at ($(d4.south)+(0,-4mm)$) {analytical LPU as primary method (Eq.~LPU-for-NN)};
+\node[action, anchor=north] (lpuPrimary) at ($(d4.south)+(0,-4mm)$) {analytical LPU as primary method: Eq.~(3) for MLPs, full Jacobian otherwise};
 \draw[arrow] (d4) -- (lpuPrimary) node[lbl, right]{yes};
 
 % ---- Phase 3 -> Phase 4 through the gutter ----
@@ -135,7 +135,7 @@
 \node[outcomeR, anchor=north] (p4r) at ($(p4.south)+(-18mm,-4mm)$)
   {\textbf{Regression}: layer-wise LPU or GUM-S1 MC $\rightarrow u_{\mathrm{physical}}$; ensemble $\rightarrow u_{\mathrm{training}}$};
 \node[outcomeC, anchor=north] (p4c) at ($(p4.south)+(18mm,-4mm)$)
-  {\textbf{Classification}: propagate the confidence-score covariance; dispersion metric (Sec.~3)};
+  {\textbf{Classification}: propagate the confidence-score covariance; dispersion statistic (Sec.~3)};
 \draw[arrow] (p4r.north |- p4.south) -- (p4r.north);
 \draw[arrow] (p4c.north |- p4.south) -- (p4c.north);
 \node[decision, anchor=north] (duse) at ($(R |- p4r.south)+(0,-4mm)$) {Intended use (Phase 1)?};
@@ -163,7 +163,7 @@
 \node[decision, anchor=north] (d6) at ($(d5.south)+(0,-4mm)$) {coverage $\approx$ nominal at $k{=}1$ and $k{=}2$?};
 \draw[arrow] (d5) -- (d6) node[lbl, right]{yes};
 \node[report, anchor=north] (rep) at ($(R |- d6.south)+(0,-4mm)$)
-  {\textbf{Report}: $y \pm U(y)$, $k$ and confidence level; same-instrument and
+  {\textbf{Report}: $y \pm U(y)$, $k$ and coverage probability; same-instrument and
   transfer budgets separately; how $u_{\mathrm{rand}}$ and $u_{\mathrm{sys}}$ were obtained,
   stationarity of $u_{\mathrm{sys}}$; full covariance for correlated outputs;
   linearity, MC sample size $M$, input distributions};
@@ -191,7 +191,7 @@
   \tikz[baseline=-0.5mm]\fill[okBlue] (0,0) rectangle (2mm,2mm); regression\quad
   \tikz[baseline=-0.5mm]\fill[okOrange] (0,0) rectangle (2mm,2mm); classification\quad
   \tikz[baseline=-0.5mm]\draw[black!60,thick] (0,0) rectangle (2mm,2mm); both tracks\\[0.8mm]
-  \tikz[baseline=-0.2mm]\draw[okOrange,thick] (0,0.9mm)--(0.8mm,2mm)--(3.6mm,2mm)--(4.4mm,0.9mm)--(3.6mm,-0.2mm)--(0.8mm,-0.2mm)--cycle; decision\quad
+  \tikz[baseline=-0.2mm]\draw[black!60,thick] (0,0.9mm)--(0.8mm,2mm)--(3.6mm,2mm)--(4.4mm,0.9mm)--(3.6mm,-0.2mm)--(0.8mm,-0.2mm)--cycle; decision\quad
   \tikz[baseline=-0.5mm]\draw[red!60!black,thick,dashed] (0,0.8mm) -- (4mm,0.8mm); validation return to:\\[0.5mm]
   {\color{red!50!black}\textbf{A} Phase 3: adopt MC as primary method (linearity violated)\\
   \textbf{B} Phase 2: revise the input-uncertainty model\\

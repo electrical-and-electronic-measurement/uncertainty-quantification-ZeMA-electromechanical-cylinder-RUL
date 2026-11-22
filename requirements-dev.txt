@@ -1,0 +1,5 @@
+# Only needed to re-export the notebooks to PDF (export_notebooks_to_pdf.py);
+# afterwards run: playwright install chromium
+-r requirements.txt
+nbconvert==7.17.2
+playwright==1.64.1

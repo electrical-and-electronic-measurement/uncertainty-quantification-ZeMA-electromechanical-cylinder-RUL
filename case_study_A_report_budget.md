@@ -55,7 +55,7 @@ The split does not introduce a new kind of uncertainty. It specifies the correla
 - **Context dependence.** Whether a component is random or systematic depends on the model in which the quantity is used (GUM E.3.6, E.3.7); here the model includes a normalization fitted on the same instrument, which absorbs δ.
 - **Transfer.** δ is propagated with *r* = +1 within a channel, like the resistors calibrated against the same standard in GUM 5.2.2, Note 1.
 
-The paper-ready version of this argument, with citations, is in `case_study_A_report.md` §11.1.
+Section 5.1 of the paper gives this argument with citations.
 
 ### 2.2 Budget
 

@@ -7,12 +7,12 @@
 > **Status update (29 Oct 2026).** The numbers in this report are still correct, but they describe the *original* budget. Later work changes how they should be read:
 >
 > 1. **Corrected budget** (`case_study_A_report_budget.md`). The original $u_{\mathrm{physical}}$ treats every declared input uncertainty as independent per-reading noise. For Pressure, Velocity and the plain-bearing accelerometer the declared $u$ exceeds the cross-cycle spread $s$, so at least 98.7%, 93.9% and 74% of $u^2$ must be common to all cycles (systematic). A systematic error common to all cycles cancels in the z-score when the same instrument is used for training and inference. Propagating only the random part and combining with Monte Carlo gives $u_c \approx 0.11$–$0.14$ instead of $0.985$, or $0.089$–$0.093$ when the manufacturer's noise floor of the Kistler 8704B50M1 accelerometers is used (`datasheet` model). LPU and MC then agree within 3–7%, so the 36.5% gap in §7 is a consequence of the misinterpreted input uncertainty, not of the network depth. The systematic part ($\approx 0.76$–$0.78$) is reported separately, for transfer to another instrument.
-> 2. **The over-coverage diagnosis in §7 and §11 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9% (98.9–99.6% with the `datasheet` model), because the estimates of the random part of Velocity and the plain-bearing accelerometer are data-based upper bounds (the residuals allow at most 0.03–0.06, against 0.08–0.14 computed); $u_{\mathrm{calibration}}$ estimated on a validation set comes out 0.
+> 2. **The over-coverage diagnosis in §7 is superseded.** The cause is not that normalization amplifies Pressure, but that a systematic component was propagated as random noise. Even with the corrected budget, coverage at $k{=}2$ stays at 99.3–99.9% (98.9–99.6% with the `datasheet` model), because the estimates of the random part of Velocity and the plain-bearing accelerometer are data-based upper bounds (the residuals allow at most 0.03–0.06, against 0.08–0.14 computed); $u_{\mathrm{calibration}}$ estimated on a validation set comes out 0.
 > 3. **Split check** (`case_study_A_report_budget.md` §3.2). The random split leaves a neighbouring cycle ($k\pm1$) of 96% of the test cycles in training. Holding out whole blocks of consecutive cycles raises RMSE by only 5–16% (0.066 → 0.070–0.077, $R^2$ 0.94–0.95): the point accuracy is not an artefact of the random split.
 > 4. **Inputs are the first 50 ms** of the 1 s return-stroke window, not 100 readings spread over the cycle (`case_study_A_report_fullwindow.md` §1).
 > 5. The CSV `u_c` and the coverage in §7–§8 combine the **LPU** value; the MC-based figures are given in the text.
 >
-> For the paper, use the revised text in §11.1 rather than the original paragraphs of §11.
+> Section 5.1 of the paper uses the corrected budget (`datasheet` model).
 
 ---
 
@@ -28,12 +28,12 @@
 | $u_{\mathrm{physical}}$ (input quantities) | Propagated analytically (LPU) and via Monte Carlo (GUM Supplement 1, $M=10^4$) |
 | $u_{\mathrm{training}}$ (model-related) | 10-seed training ensemble, evaluated statistically |
 | **Headline result** | LPU and MC disagree by a median **36.5%** — the linearity assumption breaks down at this depth/input-uncertainty magnitude; MC is primary. Coverage @ $k=2$ is **100%**, driven by one dominant, uncertainty-amplified sensor channel (Pressure), not a missing source. *(Original budget; superseded — see the status update above.)* |
-| Corrected budget (update) | Random part only, MC: $u_c = 0.093$ (`datasheet`, used in §11.1), $0.110$ (`noise`), $0.136$ (`bound`); LPU/MC 3.6–6.3%; coverage @ $k=2$ 99.6–99.9%; systematic part for transfer $\approx 0.76$–$0.78$ (`case_study_A_report_budget.md`) |
+| Corrected budget (update) | Random part only, MC: $u_c = 0.093$ (`datasheet`, used in the paper), $0.110$ (`noise`), $0.136$ (`bound`); LPU/MC 3.6–6.3%; coverage @ $k=2$ 99.6–99.9%; systematic part for transfer $\approx 0.76$–$0.78$ (`case_study_A_report_budget.md`) |
 | Split check (update) | Blocked split, no test cycle adjacent to training: RMSE 0.070–0.077 vs. 0.066, $R^2$ 0.94–0.95 |
 
 **Notation.** $k$ indexes the test-to-failure cycle ($k=1,\dots,N$, with $N$ the total cycles run for the tested unit); $y_k = k/N \in [0,1]$ is the true, deterministically-assigned consumed-lifetime fraction at cycle $k$ (the measurand — see §4), with $\text{RUL}=1-y_k$.
 
- A hat denotes a model estimate of the corresponding quantity: $\hat y_k$ is the trained MLP's point prediction of $y_k$ from that cycle's sensor readings (`y_hat` in `case_study_A_results.csv`), and is a distinct claim from its associated uncertainty. $u_{\mathrm{physical}}$ is the standard uncertainty in $\hat y_k$ propagated from the sensor input uncertainties (physical-quantity uncertainty; via LPU or Monte Carlo — §7), $u_{\mathrm{training}}$ is the standard uncertainty from training-process variability (model-related, evaluated statistically from the seed-ensemble spread — §6), and $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ is their quadrature combination (§7) — the paper's $u_c^2=u_{\mathrm{physical}}^2+u_{\mathrm{model}}^2$ with $u_{\mathrm{model}}^2=u_{\mathrm{training}}^2$, since the architecture is held fixed and $u_{\mathrm{calibration}}$ is not considered — which is what the $k{=}2$ expanded-uncertainty coverage checks (§8) are built on. This holds for the original budget; the corrected budget (§11.1) uses $u_c^2=u_{\mathrm{rand}}^2+u_{\mathrm{training}}^2+u_{\mathrm{calibration}}^2$, with $u_{\mathrm{calibration}}$ estimated on a validation set. 
+ A hat denotes a model estimate of the corresponding quantity: $\hat y_k$ is the trained MLP's point prediction of $y_k$ from that cycle's sensor readings (`y_hat` in `case_study_A_results.csv`), and is a distinct claim from its associated uncertainty. $u_{\mathrm{physical}}$ is the standard uncertainty in $\hat y_k$ propagated from the sensor input uncertainties (physical-quantity uncertainty; via LPU or Monte Carlo — §7), $u_{\mathrm{training}}$ is the standard uncertainty from training-process variability (model-related, evaluated statistically from the seed-ensemble spread — §6), and $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ is their quadrature combination (§7) — the paper's $u_c^2=u_{\mathrm{physical}}^2+u_{\mathrm{model}}^2$ with $u_{\mathrm{model}}^2=u_{\mathrm{training}}^2$, since the architecture is held fixed and $u_{\mathrm{calibration}}$ is not considered — which is what the $k{=}2$ expanded-uncertainty coverage checks (§8) are built on. This holds for the original budget; the corrected budget (`case_study_A_report_budget.md`) uses $u_c^2=u_{\mathrm{rand}}^2+u_{\mathrm{training}}^2+u_{\mathrm{calibration}}^2$, with $u_{\mathrm{calibration}}$ estimated on a validation set. 
  
  $u_{\mathrm{physical}}$, $u_{\mathrm{training}}$, $u_c$ are a per-test-cycle quantity, not a single dataset-wide constant.
 
@@ -46,7 +46,7 @@ Two distinct thresholds apply, at two different stages of this case study, and s
 - **Implementation self-test (Step 0, §3).** A random synthetic softplus MLP's analytically propagated $u_{\mathrm{physical}}$ is compared against a 200,000-sample Monte Carlo estimate. `case_study_A_analysis.py::self_test_lpu` **hard-asserts** the relative difference is below **2%** — this is a pass/fail gate on the correctness of the `propagate_lpu` implementation itself, independent of anything about the ZeMA dataset or the trained model.
 - **Case-study validation (Phase 5, §8).** For the real dataset and trained model, the guide's decision rule treats a median relative difference of a **low single-digit percent** as consistent with the first-order linearity assumption holding, in which case LPU may be reported as the primary $u_{\mathrm{physical}}$ estimate. A difference **above roughly 5–10%** is treated as evidence that the linearity assumption is violated at this network depth and input-uncertainty magnitude — in which case Monte Carlo, not LPU, is reported as the primary estimate. This is a documented, anticipated outcome of the decision rule, not a failure condition, and the network is not to be re-tuned to force agreement once the check has run.
 
-The self-test in this run passed at 0.096% (§3), confirming the propagation code is correct. The case study's own LPU-vs-MC result is 36.5% median relative difference (§7) — well above the 5–10% ceiling — which is why Monte Carlo, not LPU, is used as the primary $u_{\mathrm{physical}}$ throughout the rest of this report (§7, §9, §11).
+The self-test in this run passed at 0.096% (§3), confirming the propagation code is correct. The case study's own LPU-vs-MC result is 36.5% median relative difference (§7) — well above the 5–10% ceiling — which is why Monte Carlo, not LPU, is used as the primary $u_{\mathrm{physical}}$ throughout the rest of this report (§7, §9).
 
 ---
 
@@ -296,9 +296,7 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 | Label (RUL definition) | — | negligible | Deterministic, $y_k=k/N$ |
 | **Combined** $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ | — | $\mathbf{0.985}$ | Dominated by $u_{\mathrm{physical}}$, itself dominated by the Pressure channel |
 
-LaTeX source for this table, and the corresponding paper sentences for the LPU/MC, coverage, and reporting-statement paragraphs, are reproduced verbatim in §11 below.
-
-> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{calibration}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3 and in the revised table of §11.1.
+> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{calibration}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3; Section 5.1 of the paper reports it with the `datasheet` model.
 
 ---
 
@@ -317,313 +315,13 @@ LaTeX source for this table, and the corresponding paper sentences for the LPU/M
 | `pipeline_run.log` | Captured stdout of the real `case_study_A_analysis.py` run |
 | `case_study_A_report.md` | This document |
 
-**Internal development/testing artifacts — not real results, should not be cited in the paper:**
-
-| File | Role |
-|---|---|
-| `generate_synthetic_case_study_A_data.py` | Generates fake data with the right schema, used only to exercise `make_validation_figure.py` before the real dataset finished downloading. Explicitly self-labeled `*** SYNTHETIC DATA ***` in its own output. |
-| `case_study_A_results_SYNTHETIC.csv` | Output of the above — fake numbers, matching schema only. |
-| `zema_lpu_vs_mc_syntetic.pdf` | Figure rendered from the synthetic CSV, for pipeline testing only. |
-| `make_validation_figure.md` | Dev notes on the figure script. |
-
 **Later additions.** The corrected budget (`case_study_A_analysis_budget.py`, `case_study_A_report_budget.md` and its `*_budget_*` CSVs, logs and figures), the variant reports (`case_study_A_report_trimmed.md`, `case_study_A_report_fullwindow.md` with their scripts and outputs) and the dataset description (`case_study_A_dataset_report.md`, `check_dataset_consistency.py`, `dataset_consistency.log`) belong to the supplementary package too; `README.md` lists every file.
 
-**Recommendation:** bundle the core files above together with these later additions as supplementary material for the paper. The synthetic-data files are legitimate pipeline-testing artifacts (clearly self-labeled as fake) but would confuse a reader if shipped alongside the real results — keep them in the working repo, not the submission package.
+All of these files are included in this package.
 
 ---
 
-## 11. Paper-ready text (Step 7)
-
-**Tooling/dataset paragraph:**
-```latex
-The uncertainty budget was computed on the full-resolution ZeMA electromechanical
-cylinder dataset (\texttt{zema\_emc\_annotated} v0.7.1, \texttt{torch} 2.13.0,
-Python 3.10.12), with input dimension $11 \times 100 = 1100$
-(11 sensor channels: three accelerometers (plain bearing, piston rod,
-ball bearing), active current, axial force, three-phase motor current,
-pneumatic pressure, sound pressure, velocity).
-```
-
-**LPU vs. MC sentence:**
-```latex
-Across the held-out cycles, the analytical and Monte Carlo estimates of $u_{\mathrm{physical}}$
-agreed to within $36.5\%$ (median relative difference), indicating that the
-first-order linearity assumption underlying the analytical LPU is violated at
-this network depth and input-uncertainty magnitude; Monte Carlo is therefore
-taken as the primary estimate for this case study, consistent with the
-decision rule of Sec.~\ref{sec:methodology}.
-```
-
-**Coverage sentence:**
-```latex
-The empirical coverage of the $k=2$ expanded interval was $100.0\%$ against
-the $\approx 95\%$ target. Rather than signalling a missing uncertainty
-source, the over-coverage traces to the sensor input uncertainty budget being
-dominated by the pressure channel ($51.8\%$ of the first-layer sensitivity
-contribution, vs.\ $25.2\%$ for velocity and $11.5\%$ for the
-plain-bearing acceleration channel): its per-reading standard
-uncertainty exceeds its own training-set signal variation, so $z$-score
-normalization
-($u(x') = u(x)/\sigma_{\text{train}}$) amplifies its normalized contribution
-to $\approx 8.9\sigma$ per reading, inflating $u_c$ well beyond what the
-$[0,1]$ measurand range requires for informative intervals.
-```
-
-**Reporting/assumptions statement (Phase 5):**
-```latex
-We report the following assumptions and settings explicitly. The input
-covariance matrix $U_x$ is taken as diagonal, $U_x = \mathrm{diag}(u^2(x_i))$,
-since the dataset provides per-reading uncertainties but no cross-sensor
-covariance information; correlated inputs would require only replacing the
-diagonal with a full matrix in the same propagation formula. Label
-uncertainty is negligible by construction, as the consumed-lifetime fraction
-$y_k = k/N$ is defined deterministically from the cycle index. Monte Carlo
-propagation followed GUM Supplement~1 (JCGM 101:2008) with Gaussian input
-distributions and $M = 10^4$ samples; convergence was verified by re-running
-a held-out sample at $M = 10^5$ and $M = 10^6$, with $u_{\mathrm{physical}}^{\mathrm{MC}}$ moving
-by $1.75\%$ and $0.08\%$ respectively, both far smaller than the $36.5\%$
-LPU/MC gap.
-```
-
-**Table `\ref{tab:zema_uncertainty_budget}`:**
-```latex
-\begin{table}[t]
-\centering
-\caption{Uncertainty budget for RUL estimation on the ZeMA cylinder dataset.}
-\label{tab:zema_uncertainty_budget}
-\begin{tabular}{lccl}
-\toprule
-Source & Type & $u$ & Sensitivity / notes \\
-\midrule
-$u_{\mathrm{physical}}$. Sensor input uncertainty (11 channels) & B & $0.984$ & Pressure 51.8\%, Velocity 25.2\%, \\
- & & & Acc.\ plain bearing 11.5\% \\
-$u_{\mathrm{training}}$. Training process variability (10-seed ensemble) & A & $0.049$ & optimization variance only \\
-Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
-Generalization / distribution shift & B & \textemdash & assessed via coverage (Sec.~\ref{sec:...}) \\
-Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
-\midrule
-Combined & \textemdash & $\mathbf{0.985}$ & dominated by $u_{\mathrm{physical}}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The reported $u_{\mathrm{physical}}$ is the Monte Carlo estimate, taken as primary per the
-Phase~5 decision rule: the analytical LPU gives $u_{\mathrm{physical}} = 0.641$, a median
-relative difference of 36.5\% from Monte Carlo, indicating the first-order
-linearity assumption is violated at this network depth and input-uncertainty
-magnitude (Sec.~\ref{sec:...validation}).
-```
-
-### 11.1 Revised paper-ready text (corrected budget, update 30 Oct 2026)
-
-The paragraphs above describe the original budget, and their coverage explanation is superseded (status update at the top). The text below uses the corrected budget of `case_study_A_report_budget.md`: baseline input (11 channels, first 100 samples), `datasheet` model for the random part (the recommendation of `case_study_A_report_budget.md` §5), random split. The two data-based models (`noise`, `bound`) and the blocked split are given as checks. Choosing the no-pressure configuration instead is an authors' decision — swap in the numbers from `case_study_A_report_budget.md` §3 if needed.
-
-**Input-uncertainty model: two components with different correlation structure** (`JCGM101` is the key already used in the paper draft; `JCGM100`, `JCGM102`, `JCGM200` and `vonNeumann1941` are to be added, BibTeX entries at the end of this section):
-```latex
-The dataset declares a single standard uncertainty $u$ per reading, of
-undocumented provenance and therefore evaluated as Type~B. It does not state
-how this uncertainty is correlated between readings, cycles and channels.
-The original budget assumed independent readings,
-$U_x = \mathrm{diag}(u^2)$. The data rule this out: if the whole of $u$
-varied independently from cycle to cycle, the observed cross-cycle standard
-deviation $s$ of each reading could not be smaller than $u$, whereas for the
-pressure, velocity and plain-bearing acceleration channels $u/s$ is $8.8$,
-$4.3$ and $2.1$ (first 100 samples, training cycles). Following
-\cite[3.4.2]{JCGM100}, the measurement model is revised when observed data
-show it to be incomplete, and correlations that are present and significant
-cannot be ignored \cite[5.2.5]{JCGM100}.
-
-We therefore model reading $i$ of channel $k$ in cycle $c$ as
-$x_{c,ki} = \xi_{c,ki} + \varepsilon_{c,ki} + \delta_{ki}$, where
-$\varepsilon_{c,ki}$ is a random error that varies unpredictably between
-replicate cycles and $\delta_{ki}$ a systematic error that remains constant
-over them \cite[2.19, 2.17]{JCGM200}, with
-$u^2 = u_{\mathrm{rand}}^2 + u_{\mathrm{sys}}^2$. As in
-\cite[F.1.2.4]{JCGM100}, the common errors $\delta_{ki}$ are introduced as
-additional input quantities, shared by all cycles and independent between
-channels; equivalently, two cycles measured with the same instrument have
-covariance $u_{\mathrm{sys}}^2$ \cite[5.2.4, F.1.2.3]{JCGM100}. The split
-is a statement about correlation, not about the evaluation method: both
-components inherit the Type~B evaluation of the declared $u$
-\cite[3.3.3, 3.3.4]{JCGM100}. The labels ``random'' and ``systematic'' are
-also relative to the model, since a component's nature ``is conditioned by
-the use made of the corresponding quantity'' \cite[E.3.6]{JCGM100}: here the
-context is a network whose inputs are normalized with statistics fitted on
-the same instrument.
-
-Only $\varepsilon$ contributes to the cross-cycle spread, so
-$s^2 = \mathrm{var}(\xi) + u_{\mathrm{rand}}^2$ and
-$u_{\mathrm{rand}} \le s$; comparing the observed variability only with the
-components that can produce it, kept in a separate group, is the procedure
-of \cite[3.4.3]{JCGM100}. Hence at least $98.7\%$, $93.9\%$ and $74\%$ of
-$u^2$ is common to all cycles for the three channels above. We estimate
-$u_{\mathrm{rand}} = \min(u, s, \sigma_k, \sigma_{\mathrm{ds},k})$, where
-$s$ and the white-noise floor $\sigma_k$ (robust estimate from second
-differences of adjacent samples, cf.~\cite{vonNeumann1941}) are Type~A
-upper bounds, and $\sigma_{\mathrm{ds},k}$ is the noise floor published by
-the manufacturer, available only for the two Kistler 8704B50M1
-accelerometers ($0.004\,g$ rms, Type~B).
-
-The model includes the $z$-score normalization, fitted on the training
-cycles. A systematic error common to all cycles of a column acts as an
-affine map $x' = a + b\,x$ on that column, which shifts and scales the
-training mean and standard deviation in the same way and leaves the
-normalized input, hence the prediction, unchanged. When the same instrument
-is used for training and inference, the sensitivity coefficient of the
-output with respect to $\delta$ is therefore zero and $u_{\mathrm{sys}}$
-does not enter the budget; only $u_{\mathrm{rand}}$ is propagated, with
-$U_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$. For transfer to another
-instrument the normalization no longer absorbs $\delta$, which is then
-propagated with correlation coefficient $+1$ between the readings of a
-channel (cf.\ the series of resistors calibrated against the same standard
-in \cite[5.2.2, Note~1]{JCGM100}), both by the law of propagation of
-uncertainty and by Monte Carlo with correlated inputs
-\cite{JCGM101,JCGM102}. The common shift adds linearly over the readings
-of a channel, instead of in quadrature as an independent error would.
-```
-
-**LPU vs. MC sentence:**
-```latex
-Across the held-out cycles, the analytical and Monte Carlo estimates of the
-propagated random input uncertainty agreed to within $3.6\%$ (median relative
-difference; $4.7\%$ and $6.3\%$ with the purely data-based bounds
-$u_{\mathrm{rand}} = \min(u, s, \sigma_k)$ and $\min(u, s)$), so the
-first-order approximation is adequate at this input-uncertainty magnitude;
-the Monte Carlo value is used in the combination. With the full declared
-uncertainty propagated as independent noise the two methods disagreed by
-$36.5\%$, because perturbations of up to nine training-set standard
-deviations take the network far outside its training domain.
-```
-
-**Coverage sentence:**
-```latex
-The empirical coverage of the $k=2$ expanded interval was $99.6\%$
-($89.2\%$ at $k=1$) against the $\approx 95\%$ target, with
-$\bar u_c / \overline{|e|} = 2.0$. The over-coverage comes from the random
-input part: the test residuals allow at most $0.03$ of propagated random
-input uncertainty, against $0.08$ computed, and the model term estimated on a
-validation set, $u_{\mathrm{calibration}}^2 = \overline{e^2} -
-\overline{u_{\mathrm{training}}^2} - \overline{u_{\mathrm{rand}}^2}$, is
-therefore zero. The excess comes from the velocity and plain-bearing
-acceleration channels, whose random part is capped at $s$ because no noise
-specification is available for them; a tighter estimate requires repeated
-static measurements or a manufacturer noise specification. Holding out whole
-blocks of 50 consecutive cycles, so that no test cycle is adjacent to a
-training cycle, gives RMSE $0.074$ (vs.\ $0.066$), $R^2 = 0.95$ and
-coverage $99.3\%$.
-```
-
-**Reporting/assumptions statement (Phase 5):**
-```latex
-The random part of the input uncertainty is taken as independent between
-readings, $U_x = \mathrm{diag}(u_{\mathrm{rand}}^2)$; the systematic part
-as fully correlated within a channel and independent between channels
-\cite[5.2.4, F.1.2.3]{JCGM100}.
-The systematic part is assumed constant over the whole run-to-failure
-experiment; a drift that varies with the cycle index would not cancel in the
-normalization and would be confounded with the measurand. Label uncertainty
-is negligible by construction ($y_k = k/N$). Monte Carlo propagation followed
-GUM Supplement~1 \cite{JCGM101} with Gaussian inputs and $M = 10^4$
-samples. The point
-estimate is the network output $f(x)$; the Monte Carlo mean differs from it
-by $0.010$ on average.
-```
-
-**Table `\ref{tab:zema_uncertainty_budget}` (revised):**
-```latex
-\begin{table}[t]
-\centering
-\caption{Uncertainty budget for RUL estimation on the ZeMA cylinder dataset
-(mean over 953 held-out cycles; same instrument for training and inference).}
-\label{tab:zema_uncertainty_budget}
-\begin{tabular}{lccl}
-\toprule
-Source & Type & $u$ & Notes \\
-\midrule
-$u_{\mathrm{rand}}$. Random part of sensor input & B & $0.076$ & MC; datasheet / Type A cap \\
-$u_{\mathrm{training}}$. Training process (10 seeds) & A & $0.051$ & optimization only \\
-$u_{\mathrm{calibration}}$. Residual model error (validation) & A & $0$ & clipped, see text \\
-Architecture selection & \textemdash & excluded & held fixed (128,64,32; softplus) \\
-Label (RUL definition) & \textemdash & negligible & deterministic, $y_k = k/N$ \\
-\midrule
-Combined $u_c$ & \textemdash & $\mathbf{0.093}$ & coverage $k{=}2$: $99.6\%$ \\
-\midrule
-$u_{\mathrm{sys}}$. Systematic part (transfer only) & B & $0.782$ & MC; mostly pressure \\
-Combined, transfer to another instrument & \textemdash & $0.788$ & \\
-\bottomrule
-\end{tabular}
-\end{table}
-```
-
-Combined values are means of the per-cycle $u_c$, so they differ slightly from the quadrature sum of the column means.
-
-**BibTeX entries for the citations above** (clause numbers verified against the official BIPM editions of JCGM 100:2008 and JCGM 200:2012):
-```bibtex
-@techreport{JCGM100,
-  author      = {{JCGM}},
-  title       = {Evaluation of measurement data -- Guide to the expression
-                 of uncertainty in measurement},
-  institution = {Joint Committee for Guides in Metrology},
-  number      = {JCGM 100:2008},
-  year        = {2008}
-}
-@techreport{JCGM101,
-  author      = {{JCGM}},
-  title       = {Evaluation of measurement data -- Supplement 1 to the
-                 ``Guide to the expression of uncertainty in measurement''
-                 -- Propagation of distributions using a Monte Carlo
-                 method},
-  institution = {Joint Committee for Guides in Metrology},
-  number      = {JCGM 101:2008},
-  year        = {2008}
-}
-@techreport{JCGM102,
-  author      = {{JCGM}},
-  title       = {Evaluation of measurement data -- Supplement 2 to the
-                 ``Guide to the expression of uncertainty in measurement''
-                 -- Extension to any number of output quantities},
-  institution = {Joint Committee for Guides in Metrology},
-  number      = {JCGM 102:2011},
-  year        = {2011}
-}
-@techreport{JCGM200,
-  author      = {{JCGM}},
-  title       = {International vocabulary of metrology -- Basic and general
-                 concepts and associated terms ({VIM}), 3rd edition},
-  institution = {Joint Committee for Guides in Metrology},
-  number      = {JCGM 200:2012},
-  year        = {2012}
-}
-@article{vonNeumann1941,
-  author  = {von Neumann, J. and Kent, R. H. and Bellinson, H. R. and Hart,
-             B. I.},
-  title   = {The mean square successive difference},
-  journal = {The Annals of Mathematical Statistics},
-  volume  = {12},
-  number  = {2},
-  pages   = {153--162},
-  year    = {1941}
-}
-```
-
-Clauses used, and what each supports:
-
-| Clause | Content | Used for |
-|---|---|---|
-| GUM 3.3.3, 3.3.4 | Type A/B classify the evaluation method, "not substitutes for the words random and systematic" | the split leaves both components Type B |
-| GUM 3.4.2 | revise the model when observed data show it is incomplete | $u > s$ falsifies $U_x = \mathrm{diag}(u^2)$ |
-| GUM 3.4.3 and Note | compare observed variability only with the components that can produce it, grouped separately | $u_{\mathrm{rand}} \le s$ |
-| GUM 5.2.2, Note 1 and Example | readings tied to the same standard have $r = +1$; the contributions add linearly | transfer term, common shift per channel |
-| GUM 5.2.4 | correlation when the same instrument is used | common component across cycles |
-| GUM 5.2.5 | significant correlations cannot be ignored; Type B evaluation of covariance | why the split is needed |
-| GUM F.1.2.3 (Eq. F.2), F.1.2.4 | covariance from shared quantities; common quantities as extra independent inputs | $\delta_{ki}$ as additional inputs |
-| GUM E.3.6, E.3.7 | a component is not intrinsically random or systematic, its nature depends on the model | labels relative to the normalization |
-| VIM 2.17, 2.19 | systematic / random measurement error | definition of $\delta$ and $\varepsilon$ |
-| JCGM 101, JCGM 102 | Monte Carlo propagation, multivariate and correlated inputs | MC with per-channel common draw |
-
----
-
-## 12. Reproducing this report from scratch
+## 11. Reproducing this report from scratch
 
 ```bash
 python3.10 -m venv zema_env && source zema_env/bin/activate

@@ -1,10 +1,20 @@
 # Case Study A — GUM-Compliant Uncertainty Quantification for RUL Estimation
 
-Supplementary material for Section 5.1 of the paper. This case study applies the
+Supplementary material for Section 5.1 of the paper
+*TODO: authors, title, journal, DOI*. This case study applies the
 paper's uncertainty-quantification methodology (Phases 1–5) to a real regression
 task: estimating remaining useful life (RUL) of an electromechanical cylinder
 from multi-sensor time-series data, with a full metrological uncertainty budget
 computed both analytically and via Monte Carlo.
+
+## How to cite and licence
+
+Please cite both the paper above and this deposit (*TODO: Zenodo DOI*);
+citation metadata are in [CITATION.cff](CITATION.cff). Source code is released
+under the MIT License, all other content (reports, figures, results, logs)
+under CC BY 4.0; see [LICENSE](LICENSE). The ZeMA dataset (Dorst et al. 2021,
+doi:10.5281/zenodo.5185953, CC BY 4.0) is not redistributed: the scripts
+download it from Zenodo.
 
 ## Use case
 
@@ -92,13 +102,12 @@ the budget conclusions unchanged (§3.2 of that report).
 |---|---|
 | [case_study_A_analysis.py](case_study_A_analysis.py) | Core pipeline: downloads/loads the ZeMA dataset, z-scores inputs (with exact GUM propagation through normalization), trains a 10-seed MLP ensemble, computes `u_physical` via both `propagate_lpu()` (analytical LPU) and `propagate_mc()` (Monte Carlo), combines `u_c`, and writes `case_study_A_results.csv`. Also contains `self_test_lpu()`, an implementation-correctness gate independent of the dataset. |
 | [make_validation_figure.py](make_validation_figure.py) | Reads a results CSV and renders the two-panel validation figure (`fig:zema_lpu_vs_mc`): LPU-vs-MC scatter with identity line, and predictions ±k=2 band vs. ground truth with coverage annotated. |
-| [generate_synthetic_case_study_A_data.py](generate_synthetic_case_study_A_data.py) | Dev/testing-only helper. Produces a fake CSV with the same schema as the real pipeline so `make_validation_figure.py` could be exercised before the real dataset finished downloading. Output is explicitly self-labeled `*** SYNTHETIC DATA ***` — never cite it in the paper. |
-| [requirements.txt](requirements.txt) | Pinned versions used to produce every real result: `zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`. |
+| [requirements.txt](requirements.txt) / [requirements-dev.txt](requirements-dev.txt) | Pinned versions used to produce every real result (Python 3.10.12): `zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`, `h5py`, `pooch`, plus `pandas`, `seaborn`, `ipykernel` for the notebooks. `requirements-dev.txt` adds `nbconvert` and `playwright`, needed only to re-export the notebooks to PDF. |
 | [case_study_A_guide.md](case_study_A_guide.md) | Step-by-step execution guide, mapped explicitly onto the paper's Phase 1–5 methodology. Read this before re-running anything. |
 | [case_study_A_report.md](case_study_A_report.md) | Full execution report: every number, decision, and diagnosis behind the results below. This is the primary reference document. |
 | [case_study_A_dataset_report.md](case_study_A_dataset_report.md) | Description of the full HDF5 file (ZeMA DAQ and SmartUp Unit, 24 signals: sensors, units, ranges, uncertainty models, `u/s` ratios, within-window behaviour), a comparison of the declared uncertainties with the manufacturers' specifications of the main sensors (§4.1), and a 22-item consistency check against Dorst et al. 2022, with the dataset issues found (cycle-count typo, axial load below nominal, undocumented ZeMA uncertainties, duplicated SUU uncertainty arrays). |
 | [check_dataset_consistency.py](check_dataset_consistency.py) | Prints every number in `case_study_A_dataset_report.md` (output in `dataset_consistency.log`). |
-| [case_study_A_eda.ipynb](case_study_A_eda.ipynb) | Exploratory data analysis of the raw ZeMA input data (value/uncertainty distributions per channel, degradation trends, correlations, sanity checks) — run before modeling, independent of `case_study_A_analysis.py`. Needs `pandas`/`seaborn` in addition to `requirements.txt`. |
+| [case_study_A_eda.ipynb](case_study_A_eda.ipynb) | Exploratory data analysis of the raw ZeMA input data (value/uncertainty distributions per channel, degradation trends, correlations, sanity checks) — run before modeling, independent of `case_study_A_analysis.py`. |
 | [case_study_A_eda_outliers.ipynb](case_study_A_eda_outliers.ipynb) | Follow-up to the EDA above: investigates the start-of-cycle spikes visible in Pneumatic pressure/Velocity (shown to be a within-cycle acquisition transient, not a life-stage effect), builds a data-driven detector for genuine early-life ("running-in") outlier cycles on other channels (notably Axial force, Motor current phase 1), and reruns the key EDA views with those cycles excluded. |
 | [case_study_A_feature_trimming.ipynb](case_study_A_feature_trimming.ipynb) | Implements and validates the outliers notebook's recommendation to trim the leading acquisition-transient samples (Pneumatic pressure K=7, Velocity K=6, Axial force K=3) before feature extraction: builds the trimmed 1,084-dim feature set, then trains the pipeline's own unmodified MLP (`make_mlp`/`train`, 10-seed ensemble) on raw vs. trimmed features under an identical split and compares test RMSE/R². Includes the exact patch point in `case_study_A_analysis.py` to adopt it. |
 | [case_study_A_run_analysis.ipynb](case_study_A_run_analysis.ipynb) | Executes the full GUM pipeline end to end as a cell-by-cell walkthrough (Phases 1–5), reusing every function from `case_study_A_analysis.py` unmodified, for two scenarios: **A** raw features (reproduces the headline `README.md` numbers exactly, as a fidelity check) and **B** trimmed features via `build_trimmed_dataset()` — recomputing the *full* uncertainty budget (`u_physical` LPU+MC, `u_training`, `u_c`, coverage), not just RMSE, so the trimming recommendation can be judged on the uncertainty quantification itself. Does not overwrite `case_study_A_results.csv`. |
@@ -109,11 +118,11 @@ the budget conclusions unchanged (§3.2 of that report).
 | [case_study_A_analysis_budget.py](case_study_A_analysis_budget.py) | Corrected uncertainty budget on the baseline model and test cycles: random/systematic split of the declared input uncertainty (`--random-model bound\|noise`, data-based upper bounds of the random part; `datasheet`, which also applies the manufacturer's noise floor where one is published), random part propagated for same-instrument use (LPU + MC), systematic part propagated as a per-channel common shift for instrument transfer, `u_calibration` from a validation set, MC-based `u_c` and coverage; also recomputes the original budget for comparison. Supports `--exclude`, `--sampling`, `--n-points`. |
 | [case_study_A_report_budget.md](case_study_A_report_budget.md) | Execution report of the corrected budget (baseline input and without Pressure, all three random models, random and blocked split): why the original budget is not correct, method and verification, results, residual consistency check, recommendation. |
 | [case_study_A_eda.pdf](case_study_A_eda.pdf) / [case_study_A_eda_outliers.pdf](case_study_A_eda_outliers.pdf) / [case_study_A_feature_trimming.pdf](case_study_A_feature_trimming.pdf) / [case_study_A_run_analysis.pdf](case_study_A_run_analysis.pdf) | Rendered PDF exports of the four notebooks above, for sharing without a notebook environment. Regenerate with `python export_notebooks_to_pdf.py` after editing the notebooks. |
-| [export_notebooks_to_pdf.py](export_notebooks_to_pdf.py) | Renders the EDA notebooks to the PDFs above with wrapped code lines (plain `nbconvert --to webpdf` clips long lines). Needs `nbconvert` + `playwright` (`playwright install chromium`) on top of `requirements.txt`. |
+| [export_notebooks_to_pdf.py](export_notebooks_to_pdf.py) | Renders the EDA notebooks to the PDFs above with wrapped code lines (plain `nbconvert --to webpdf` clips long lines). Needs `requirements-dev.txt` and `playwright install chromium`. |
 | [paper_figures/nn_neuron_lpu.tex](paper_figures/nn_neuron_lpu.tex) / [.pdf](paper_figures/nn_neuron_lpu.pdf) | New Figure 1 of the paper (`fig:Schematic_representation_artificial_neuron`): (a) artificial neuron of layer *i*, (b) MLP with layer-wise covariance propagation, in the paper's notation (σ_i, **W**_i, **b**_i, **x**^(i), **H**_i). |
 | [paper_figures/decision_tree.tex](paper_figures/decision_tree.tex) / [.pdf](paper_figures/decision_tree.pdf) | Revised Figure 2 of the paper (`fig:decision_tree`, five-phase methodology), aligned with the corrected budget; compiles with plain `pdflatex`. |
 | [paper_figures/uncertainty_decomposition.tex](paper_figures/uncertainty_decomposition.tex) / [.pdf](paper_figures/uncertainty_decomposition.pdf) | New Figure 3 of the paper (`fig:measurement_uncertainty_decomposition`): physical-quantity and measurement-model uncertainty with their contributions and the paper's symbols (`u_physical`, `u_training`, `u_architecture`, `u_calibration`). |
-| [paper_figures/ml_assisted_process.tex](paper_figures/ml_assisted_process.tex) / [.pdf](paper_figures/ml_assisted_process.pdf) | New Figure 4 of the paper (`fig:ML_assisted_process`): measurement → dataset → model f̂ → indirect measurement, with the inputs at inference and the data/model uncertainty groups mapped to `u_physical` and `u_model`. |
+| [paper_figures/ml_assisted_process.tex](paper_figures/ml_assisted_process.tex) / [.pdf](paper_figures/ml_assisted_process.pdf) | New Figure 4 of the paper (`fig:ML_assisted_process`): measurement → dataset → model f̂ → indirect measurement, with the inputs at inference and the data/model uncertainty groups mapped to `u_physical` and `u_model` |
 
 ### Real result artifacts
 
@@ -129,15 +138,24 @@ the budget conclusions unchanged (§3.2 of that report).
 | `case_study_A_results_budget_<variant>.csv` / `zema_lpu_vs_mc_budget_<variant>.pdf` / `pipeline_run_budget_<variant>.log` | Outputs of `case_study_A_analysis_budget.py` behind `case_study_A_report_budget.md`: `first100_{bound,noise,datasheet}` and `first100_no_pressure_{bound,noise,datasheet}`, plus the blocked-split runs with suffix `_blocked<size>`. The CSV keeps the 7 standard columns (`u_physical_*` = random part) plus `mc_bias, u_model` (`u_model` = `u_calibration`), `u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc`. |
 | `case_study_A_results_<variant>.csv` / `zema_lpu_vs_mc_<variant>.pdf` / `pipeline_run_<variant>.log` | Results CSV (same schema), validation figure and captured stdout of `case_study_A_analysis_fullwindow.py` for each variant behind `case_study_A_report_fullwindow.md`: `fullwindow`, `fullwindow_no_pressure`, `first100_no_pressure`, `blockmean`. |
 
-### Synthetic (dev-only, not real results)
-
-`case_study_A_results_SYNTHETIC.csv`, `zema_lpu_vs_mc_syntetic.pdf`, and
-`make_validation_figure.md` were used only to exercise the plotting pipeline
-before the real 2.67 GB dataset finished downloading. Keep them in the working
-repo for pipeline testing, but do not bundle them into the paper's
-supplementary package and never quote numbers from them.
-
 ## Results summary
+
+### Corrected budget (same 953 test cycles, random split, 15% of training held out for `u_calibration`)
+
+| Input | Random model | RMSE | `u_rand` MC | LPU/MC diff | `u_c` | Coverage k=2 / k=1 | `u_sys` (transfer) |
+|---|---|---|---|---|---|---|---|
+| first 100, 11 ch. | `bound` | 0.0664 | 0.124 | 6.3% | 0.136 | 99.9% / 96.4% | 0.758 |
+| first 100, 11 ch. | `noise` | 0.0664 | 0.095 | 4.7% | 0.110 | 99.8% / 93.1% | 0.767 |
+| **first 100, 11 ch.** | **`datasheet`** | **0.0664** | **0.076** | **3.6%** | **0.093** | **99.6% / 89.2%** | **0.782** |
+| first 100, no pressure | `bound` | 0.0694 | 0.098 | 4.7% | 0.111 | 99.5% / 95.0% | 0.376 |
+| first 100, no pressure | `noise` | 0.0694 | 0.092 | 4.2% | 0.106 | 99.5% / 93.8% | 0.380 |
+| first 100, no pressure | `datasheet` | 0.0694 | 0.073 | 3.2% | 0.089 | 99.4% / 90.2% | 0.383 |
+
+`u_calibration` (validation) is 0 in every run. The bold row is the one used in
+Section 5.1 of the paper. Blocked split and details in
+`case_study_A_report_budget.md` §3.
+
+### Original budget (superseded)
 
 Means over the 953-cycle held-out test set:
 
@@ -156,23 +174,7 @@ Means over the 953-cycle held-out test set:
 Full uncertainty budget table and per-channel sensitivity ranking (Pressure
 51.8%, Velocity 25.2%, plain-bearing acceleration 11.5% — 88.5% combined) are in
 `case_study_A_report.md` §7 and §9. These are the original-budget numbers;
-the paper-ready text of `case_study_A_report.md` §11.1 uses the corrected
-budget below.
-
-### Corrected budget (same 953 test cycles, random split, 15% of training held out for `u_calibration`)
-
-| Input | Random model | RMSE | `u_rand` MC | LPU/MC diff | `u_c` | Coverage k=2 / k=1 | `u_sys` (transfer) |
-|---|---|---|---|---|---|---|---|
-| first 100, 11 ch. | `bound` | 0.0664 | 0.124 | 6.3% | 0.136 | 99.9% / 96.4% | 0.758 |
-| first 100, 11 ch. | `noise` | 0.0664 | 0.095 | 4.7% | 0.110 | 99.8% / 93.1% | 0.767 |
-| **first 100, 11 ch.** | **`datasheet`** | **0.0664** | **0.076** | **3.6%** | **0.093** | **99.6% / 89.2%** | **0.782** |
-| first 100, no pressure | `bound` | 0.0694 | 0.098 | 4.7% | 0.111 | 99.5% / 95.0% | 0.376 |
-| first 100, no pressure | `noise` | 0.0694 | 0.092 | 4.2% | 0.106 | 99.5% / 93.8% | 0.380 |
-| first 100, no pressure | `datasheet` | 0.0694 | 0.073 | 3.2% | 0.089 | 99.4% / 90.2% | 0.383 |
-
-`u_calibration` (validation) is 0 in every run. The bold row is the one used in
-`case_study_A_report.md` §11.1. Blocked split and details in
-`case_study_A_report_budget.md` §3.
+the paper uses the corrected budget above.
 
 ### Variants (same 953 test cycles, same split and seeds)
 
@@ -307,21 +309,7 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 ```
 
 `--csv` and `--out` both default to the real filenames shown above, so a
-bare invocation reproduces `zema_lpu_vs_mc.pdf` from the real results. Point
-`--csv` at `case_study_A_results_SYNTHETIC.csv` only when smoke-testing the
-plotting code itself — never when producing a figure for the paper.
-
-### 4. (Dev-only) regenerate synthetic smoke-test data
-
-```bash
-python generate_synthetic_case_study_A_data.py
-# writes case_study_A_results_SYNTHETIC.csv
-```
-
-Use this only to exercise `make_validation_figure.py` end-to-end without
-waiting on the real dataset or a full training run — e.g., when changing the
-plotting code. Its own docstring and stdout self-label the output as fake;
-never copy a number from it, or a plot made from it, into the paper.
+bare invocation reproduces `zema_lpu_vs_mc.pdf` from the real results.
 
 ### Interpreting a re-run that disagrees with this report
 

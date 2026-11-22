@@ -1,4 +1,12 @@
+# Core pipeline (case_study_A_analysis*.py, check_dataset_consistency.py,
+# make_validation_figure.py). Validated with Python 3.10.12.
 zema_emc_annotated==0.7.1
 torch==2.13.0
 numpy==1.26.4
 matplotlib==3.10.9
+h5py==3.16.0
+pooch==1.9.0
+# Notebooks (case_study_A_*.ipynb)
+pandas==2.3.3
+seaborn==0.13.2
+ipykernel==7.3.0

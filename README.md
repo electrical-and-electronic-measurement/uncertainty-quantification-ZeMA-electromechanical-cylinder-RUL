@@ -16,6 +16,8 @@ under CC BY 4.0; see [LICENSE](LICENSE). The ZeMA dataset (Dorst et al. 2021,
 doi:10.5281/zenodo.5185953, CC BY 4.0) is not redistributed: the scripts
 download it from Zenodo.
 
+All figures are original; an earlier draft figure adapted from course material was replaced.
+
 ## Use case
 
 **Dataset.** ZeMA electromechanical cylinder, annotated (Dorst et al. 2021),

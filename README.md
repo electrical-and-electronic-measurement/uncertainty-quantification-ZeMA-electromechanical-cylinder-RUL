@@ -103,7 +103,6 @@ the budget conclusions unchanged (§3.2 of that report).
 | [case_study_A_analysis.py](case_study_A_analysis.py) | Core pipeline: downloads/loads the ZeMA dataset, z-scores inputs (with exact GUM propagation through normalization), trains a 10-seed MLP ensemble, computes `u_physical` via both `propagate_lpu()` (analytical LPU) and `propagate_mc()` (Monte Carlo), combines `u_c`, and writes `case_study_A_results.csv`. Also contains `self_test_lpu()`, an implementation-correctness gate independent of the dataset. |
 | [make_validation_figure.py](make_validation_figure.py) | Reads a results CSV and renders the two-panel validation figure (`fig:zema_lpu_vs_mc`): LPU-vs-MC scatter with identity line, and predictions ±k=2 band vs. ground truth with coverage annotated. |
 | [requirements.txt](requirements.txt) / [requirements-dev.txt](requirements-dev.txt) | Pinned versions used to produce every real result (Python 3.10.12): `zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`, `h5py`, `pooch`, plus `pandas`, `seaborn`, `ipykernel` for the notebooks. `requirements-dev.txt` adds `nbconvert` and `playwright`, needed only to re-export the notebooks to PDF. |
-| [case_study_A_guide.md](case_study_A_guide.md) | Step-by-step execution guide, mapped explicitly onto the paper's Phase 1–5 methodology. Read this before re-running anything. |
 | [case_study_A_report.md](case_study_A_report.md) | Full execution report: every number, decision, and diagnosis behind the results below. This is the primary reference document. |
 | [case_study_A_dataset_report.md](case_study_A_dataset_report.md) | Description of the full HDF5 file (ZeMA DAQ and SmartUp Unit, 24 signals: sensors, units, ranges, uncertainty models, `u/s` ratios, within-window behaviour), a comparison of the declared uncertainties with the manufacturers' specifications of the main sensors (§4.1), and a 22-item consistency check against Dorst et al. 2022, with the dataset issues found (cycle-count typo, axial load below nominal, undocumented ZeMA uncertainties, duplicated SUU uncertainty arrays). |
 | [check_dataset_consistency.py](check_dataset_consistency.py) | Prints every number in `case_study_A_dataset_report.md` (output in `dataset_consistency.log`). |
@@ -238,7 +237,7 @@ Use `uv venv --python 3.10 --clear .venv` to recreate an existing `.venv` that
 was built with the wrong Python version. In VS Code, select `.venv` as the
 interpreter / notebook kernel.
 
-The reports and the guide use an environment named `zema_env`
+The reports use an environment named `zema_env`
 (`python3.10 -m venv zema_env`); it is equivalent to `.venv`.
 
 Plain `venv` + `pip` also works if Python 3.10 is already installed:

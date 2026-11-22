@@ -149,7 +149,7 @@ the relative difference is below \textbf{2\%} --- this is a pass/fail gate
 on the correctness of the \texttt{propagate\_lpu} implementation itself,
 independent of anything about the ZeMA dataset or the trained model.
 \item \textbf{Case-study validation (Phase 5, \S\ref{sec:validation}).} For
-the real dataset and trained model, the guide's decision rule treats a
+the real dataset and trained model, the methodology's decision rule treats a
 median relative difference of a \textbf{low single-digit percent} as
 consistent with the first-order linearity assumption holding, in which case
 LPU may be reported as the primary $u_{\mathrm{physical}}$ estimate. A difference \textbf{above
@@ -695,8 +695,6 @@ File & Role \\
 \midrule
 \texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak analysis.py} & Full pipeline: data loading,
 normalization, ensemble training, LPU, MC, combination, self-test \\
-\texttt{case\_\allowbreak study\_\allowbreak A\_\allowbreak guide.md} & Step-by-step execution guide this
-report follows \\
 \texttt{requirements.txt} & Pinned package versions
 (\texttt{zema\_\allowbreak emc\_\allowbreak annotated==0.7.1}, \texttt{torch==2.13.0},
 \texttt{numpy==1.26.4}, \texttt{matplotlib==3.10.9}) for exact reproduction \\
@@ -749,6 +747,6 @@ python make_validation_figure.py --csv case_study_A_results.csv \
 Total wall-clock time observed: environment + self-test well under an hour;
 dataset download roughly an hour (network-bound, one-time/cached);
 full-resolution 10-seed ensemble training + propagation on CPU, well under
-the guide's ``few hours'' ceiling.
+a few hours.
 
 \end{document}

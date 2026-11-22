@@ -44,7 +44,7 @@
 Two distinct thresholds apply, at two different stages of this case study, and should not be conflated:
 
 - **Implementation self-test (Step 0, §3).** A random synthetic softplus MLP's analytically propagated $u_{\mathrm{physical}}$ is compared against a 200,000-sample Monte Carlo estimate. `case_study_A_analysis.py::self_test_lpu` **hard-asserts** the relative difference is below **2%** — this is a pass/fail gate on the correctness of the `propagate_lpu` implementation itself, independent of anything about the ZeMA dataset or the trained model.
-- **Case-study validation (Phase 5, §8).** For the real dataset and trained model, the guide's decision rule treats a median relative difference of a **low single-digit percent** as consistent with the first-order linearity assumption holding, in which case LPU may be reported as the primary $u_{\mathrm{physical}}$ estimate. A difference **above roughly 5–10%** is treated as evidence that the linearity assumption is violated at this network depth and input-uncertainty magnitude — in which case Monte Carlo, not LPU, is reported as the primary estimate. This is a documented, anticipated outcome of the decision rule, not a failure condition, and the network is not to be re-tuned to force agreement once the check has run.
+- **Case-study validation (Phase 5, §8).** For the real dataset and trained model, the methodology's decision rule treats a median relative difference of a **low single-digit percent** as consistent with the first-order linearity assumption holding, in which case LPU may be reported as the primary $u_{\mathrm{physical}}$ estimate. A difference **above roughly 5–10%** is treated as evidence that the linearity assumption is violated at this network depth and input-uncertainty magnitude — in which case Monte Carlo, not LPU, is reported as the primary estimate. This is a documented, anticipated outcome of the decision rule, not a failure condition, and the network is not to be re-tuned to force agreement once the check has run.
 
 The self-test in this run passed at 0.096% (§3), confirming the propagation code is correct. The case study's own LPU-vs-MC result is 36.5% median relative difference (§7) — well above the 5–10% ceiling — which is why Monte Carlo, not LPU, is used as the primary $u_{\mathrm{physical}}$ throughout the rest of this report (§7, §9).
 
@@ -307,7 +307,6 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 | File | Role |
 |---|---|
 | `case_study_A_analysis.py` | Full pipeline: data loading, normalization, ensemble training, LPU, MC, combination, self-test |
-| `case_study_A_guide.md` | Step-by-step execution guide this report follows |
 | `requirements.txt` | Pinned package versions (`zema_emc_annotated==0.7.1`, `torch==2.13.0`, `numpy==1.26.4`, `matplotlib==3.10.9`) for exact reproduction |
 | `case_study_A_results.csv` | Real output, 953 test cycles × 7 columns (`y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2`) |
 | `make_validation_figure.py` | Generates `zema_lpu_vs_mc.pdf` from the results CSV (colorblind-safe, matches paper figure reference) |
@@ -337,4 +336,4 @@ python case_study_A_analysis.py
 python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_vs_mc.pdf
 ```
 
-Total wall-clock time observed: environment + self-test well under an hour; dataset download roughly an hour (network-bound, one-time/cached); full-resolution 10-seed ensemble training + propagation on CPU, well under the guide's "few hours" ceiling.
+Total wall-clock time observed: environment + self-test well under an hour; dataset download roughly an hour (network-bound, one-time/cached); full-resolution 10-seed ensemble training + propagation on CPU, well under a few hours.

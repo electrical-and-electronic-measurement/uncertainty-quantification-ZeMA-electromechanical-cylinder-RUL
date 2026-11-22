@@ -1,16 +1,16 @@
-# reference; add the Zenodo DOI after the first release.
+
 cff-version: 1.2.0
 message: "If you use this material, please cite it as below."
 type: software
 title: "Case Study A: GUM-compliant uncertainty quantification for RUL estimation on the ZeMA electromechanical cylinder dataset"
-version: 1.0.0
+version: 0.9.0
 date-released: 2026-11-22
 license: [MIT, CC-BY-4.0]
 authors:
   - family-names: Buchicchio
     given-names: Emanuele
     orcid: "https://orcid.org/0000-0002-2786-5931" 
-    affiliation: "Department of Engeneering, University of Perugia"
+    affiliation: "Department of Engineering, University of Perugia"
 keywords:
   - measurement uncertainty
   - GUM

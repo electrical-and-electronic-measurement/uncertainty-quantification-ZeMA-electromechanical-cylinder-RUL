@@ -168,6 +168,13 @@
   stationarity of $u_{\mathrm{sys}}$; full covariance for correlated outputs;
   linearity, MC sample size $M$, input distributions};
 \draw[arrow] (d6.south) -- (d6.south |- rep.north) node[lbl, right]{yes};
+% terminal edge: coverage off nominal and cause not removable -> report with coverage
+\coordinate (nrT) at ($(d6.west)+(-5mm,0)$);
+\draw[arrow] (d6.west) -- (nrT) -- (nrT |- rep.west) -- (rep.west);
+% two-line label straddling the vertical segment, rotated 90 deg counter-clockwise
+\path let \p1=(nrT), \p2=(rep.west) in coordinate (nrM) at (\x1,{(\y1+\y2)/2});
+\node[rotate=90, anchor=south, inner sep=0.4mm, font=\sffamily\scriptsize] at (nrM) {cause not};
+\node[rotate=90, anchor=north, inner sep=0.4mm, font=\sffamily\scriptsize] at (nrM) {removable};
 
 % ---- validation returns: lettered connectors ----
 % sources (Phase 5)

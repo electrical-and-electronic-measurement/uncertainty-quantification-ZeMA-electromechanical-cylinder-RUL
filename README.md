@@ -311,6 +311,21 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 `--csv` and `--out` both default to the real filenames shown above, so a
 bare invocation reproduces `zema_lpu_vs_mc.pdf` from the real results.
 
+### 4. Rebuild the paper figures
+
+The three schematic figures in `paper_figures/` are standalone TikZ files that
+compile with plain `pdflatex` (a TeX distribution with TikZ, e.g. TeX Live or
+MacTeX) to a tightly cropped one-page PDF:
+
+```bash
+cd paper_figures
+for f in *.tex; do pdflatex -interaction=nonstopmode "$f"; done
+rm -f *.aux *.log
+```
+
+Each `<name>.tex` writes `<name>.pdf` next to it; copy the PDFs next to the
+paper's `.tex`.
+
 ### Interpreting a re-run that disagrees with this report
 
 - **LPU vs. MC median relative difference** below ~5–10% → LPU may be

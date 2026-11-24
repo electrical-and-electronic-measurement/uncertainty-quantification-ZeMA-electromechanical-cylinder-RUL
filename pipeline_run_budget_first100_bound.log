@@ -1,5 +1,6 @@
 input dim 1100 (11 channels x 100, sampling 'first'); random model 'bound'
-train 3242, validation 571, test 953
+split 'random': train 3242, validation 571, test 953
+test cycles with a training neighbour: one side 90.6%, both sides 46.2%
 
 === Random / systematic split of the declared u (share of u^2, mean over samples) ===
   Acceleration plain bearing   u_n=   2.059  random  25.9%  systematic  74.1%  u_rand,n=1.0000
@@ -52,5 +53,12 @@ coverage @ k=2:
   original budget (indep + train)  : 100.0%
 mean u_c / mean |error|            : 2.87
 corr(u_c, |error|)                 : 0.40
+
+=== Comparison: intervals without input propagation (test cycles) ===
+constant term from validation residuals: 0.0393
+interval                             mean u  cov k=2  cov k=1  corr(u,|e|)
+u_training only (seed ensemble)      0.0510    89.8%    61.4%         0.45
+u_training + validation constant     0.0660    96.0%    76.9%         0.43
+u_c (corrected budget)               0.1362    99.9%    96.4%         0.40
 
 wrote case_study_A_results_budget_first100_bound.csv  (u_physical_* = random part, same-instrument use)

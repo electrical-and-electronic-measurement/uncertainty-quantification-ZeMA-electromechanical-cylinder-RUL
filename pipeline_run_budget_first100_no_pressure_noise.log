@@ -1,5 +1,6 @@
 input dim 1000 (10 channels x 100, sampling 'first'); random model 'noise'
-train 3242, validation 571, test 953
+split 'random': train 3242, validation 571, test 953
+test cycles with a training neighbour: one side 90.6%, both sides 46.2%
 
 === Random / systematic split of the declared u (share of u^2, mean over samples) ===
   Acceleration plain bearing   u_n=   2.059  random  23.8%  systematic  76.2%  u_rand,n=1.0000
@@ -51,5 +52,12 @@ coverage @ k=2:
   original budget (indep + train)  : 100.0%
 mean u_c / mean |error|            : 2.36
 corr(u_c, |error|)                 : 0.52
+
+=== Comparison: intervals without input propagation (test cycles) ===
+constant term from validation residuals: 0.0475
+interval                             mean u  cov k=2  cov k=1  corr(u,|e|)
+u_training only (seed ensemble)      0.0483    90.3%    62.3%         0.53
+u_training + validation constant     0.0698    98.4%    82.1%         0.53
+u_c (corrected budget)               0.1059    99.5%    93.8%         0.52
 
 wrote case_study_A_results_budget_first100_no_pressure_noise.csv  (u_physical_* = random part, same-instrument use)

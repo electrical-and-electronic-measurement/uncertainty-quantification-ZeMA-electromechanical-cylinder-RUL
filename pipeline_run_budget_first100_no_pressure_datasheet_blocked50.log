@@ -53,4 +53,11 @@ coverage @ k=2:
 mean u_c / mean |error|            : 1.77
 corr(u_c, |error|)                 : 0.55
 
+=== Comparison: intervals without input propagation (test cycles) ===
+constant term from validation residuals: 0.0509
+interval                             mean u  cov k=2  cov k=1  corr(u,|e|)
+u_training only (seed ensemble)      0.0479    88.1%    55.4%         0.56
+u_training + validation constant     0.0716    97.4%    78.1%         0.57
+u_c (corrected budget)               0.0911    98.9%    88.3%         0.55
+
 wrote case_study_A_results_budget_first100_no_pressure_datasheet_blocked50.csv  (u_physical_* = random part, same-instrument use)

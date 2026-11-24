@@ -151,8 +151,8 @@
 % ---- Phase 5 ----
 \node[phase, anchor=north] (p5) at ($(R |- same.south)+(0,-5mm)$)
   {\textbf{Phase 5 --- Validation \& Reporting}\\
-  independent test data (blocked hold-out for time- or cycle-indexed data);\\
-  residual check \mbox{$\overline{u_{\mathrm{physical}}^2} \le \overline{e^2} - \overline{u_{\mathrm{training}}^2}$} (Sec.~4.5)};
+  independent test data (blocked-split check for time- or cycle-indexed data);\\
+  residual check \mbox{$\overline{u^2}_{\mathrm{physical}} \le \overline{e^2} - \overline{u^2}_{\mathrm{training}}$} (Sec.~4.5)};
 \draw[arrow] (same.south) -- (same.south |- p5.north);
 \draw[arrow] (transfer.south) -- (transfer.south |- p5.north);
 \node[decision, anchor=north] (d5) at ($(p5.south)+(-17mm,-4mm)$) {LPU $\approx$ MC (within tolerance)?};

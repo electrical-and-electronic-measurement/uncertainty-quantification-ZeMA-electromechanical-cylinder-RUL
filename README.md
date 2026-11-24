@@ -1,6 +1,6 @@
 # Case Study A — GUM-Compliant Uncertainty Quantification for RUL Estimation
 
-Supplementary material for Section 5.1 of the paper
+Supplementary material for Sections 5–5.4 of the paper
 *TODO: authors, title, journal, DOI*. This case study applies the
 paper's uncertainty-quantification methodology (Phases 1–5) to a real regression
 task: estimating remaining useful life (RUL) of an electromechanical cylinder
@@ -158,7 +158,7 @@ the budget conclusions unchanged (§3.2 of that report).
 | first 100, no pressure | `datasheet` | 0.0694 | 0.073 | 3.2% | 0.089 | 99.4% / 90.2% | 0.383 |
 
 `u_calibration` (validation) is 0 in every run. The bold row is the one used in
-Section 5.1 of the paper. Blocked split and details in
+Section 5.3 of the paper. Blocked split and details in
 `case_study_A_report_budget.md` §3.
 
 ### Original budget (superseded)

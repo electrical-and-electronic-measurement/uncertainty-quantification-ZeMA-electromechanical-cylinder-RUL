@@ -155,7 +155,7 @@
   residual check \mbox{$\overline{u_{\mathrm{physical}}^2} \le \overline{e^2} - \overline{u_{\mathrm{training}}^2}$} (Sec.~4.5)};
 \draw[arrow] (same.south) -- (same.south |- p5.north);
 \draw[arrow] (transfer.south) -- (transfer.south |- p5.north);
-\node[decision, anchor=north] (d5) at ($(p5.south)+(-17mm,-4mm)$) {LPU $\approx$ MC (few \%)?};
+\node[decision, anchor=north] (d5) at ($(p5.south)+(-17mm,-4mm)$) {LPU $\approx$ MC (within tolerance)?};
 \draw[arrow] (d5.north |- p5.south) -- (d5.north);
 \node[decision, anchor=west, text width=25mm] (d5b) at ($(d5.east)+(5mm,0)$)
   {input model consistent?\\ \mbox{$u_{\mathrm{rand}} \le s$,} \mbox{MC mean $\approx f(x)$}};

@@ -150,6 +150,21 @@ The `datasheet` model replaces the data-based random part of the two Kistler 870
 3. **What remains is Velocity and the plain-bearing accelerometer.** Both still hit the cap *u*_rand = *s* (normalized random uncertainty 1.0) and together carry 97–98% of the normalized random input variance (Σ *u*_rand,n² from the medians in the logs). Neither has a published noise specification: the Kistler 8712A5M1 has no public datasheet, and the Festo motor controller specifies no speed accuracy (`case_study_A_dataset_report.md` §4.1).
 4. **The transfer budget hardly moves.** The two accelerometers' uncertainty moves from the random to the systematic part, so *u*_sys rises slightly (0.767 → 0.782; without pressure 0.380 → 0.383), and *u*_c,transfer is practically unchanged (0.788 / 0.394).
 
+### 3.4 Comparison with intervals that do not propagate the inputs
+
+Baseline input, `datasheet`, random split (block "Comparison" at the end of `pipeline_run_budget_first100_datasheet.log`). Two simpler intervals are computed on the same 953 test cycles and the same reference model:
+
+- **ensemble only**: *u* = *u*_training;
+- **residual based**: *u*² = *u*_training² + *c*², with a constant *c*² = mean(*e*_val²) − mean(*u*_training,val²) from the validation residuals (571 cycles). Unlike *u*_calibration (Eq. of §2.2), no propagated input term is subtracted, so *c* absorbs everything that is not seed variability: *c* = √(0.0698² − 0.0578²) = 0.0393.
+
+| Interval | mean *u* | Coverage k=2 | Coverage k=1 | corr(*u*, \|error\|) |
+|---|---|---|---|---|
+| *u*_training only (seed ensemble) | 0.051 | 89.8% | 61.4% | 0.45 |
+| *u*_training + validation constant | 0.066 | 96.0% | 76.9% | 0.43 |
+| *u*_c (corrected budget) | 0.093 | 99.6% | 89.2% | 0.45 |
+
+The seed ensemble ranks the predictions as well as *u*_c (same correlation with the error) but under-covers. Adding the validation constant gives nominal coverage at k=2 with a narrower interval than *u*_c. With the present input information, the propagated input term therefore adds width but no ability to rank predictions; what it provides, and a residual-based interval cannot, is the decomposition to the input quantities, the diagnosis of the declared uncertainties (§1) and the transfer analysis (*u*_sys).
+
 ---
 
 ## 4. Interpretation

@@ -94,6 +94,12 @@ have no noise specification, still hit the data-based cap. The systematic part
 another instrument. See `case_study_A_report_budget.md`; the sensor
 specifications are compared with the declared uncertainties in
 `case_study_A_dataset_report.md` §4.1.
+For comparison (`datasheet`, random split), two intervals that do not
+propagate the inputs: the seed ensemble alone has the same correlation with
+the error (r = 0.45) but covers 89.8% at k=2; adding a constant term from the
+validation residuals (0.039) gives 96.0% with mean `u` = 0.066 (§3.4 of
+`case_study_A_report_budget.md`, block "Comparison" of
+`pipeline_run_budget_first100_datasheet.log`).
 A blocked split (whole blocks of consecutive cycles held out, so no test cycle
 has a training neighbour) raises RMSE by only 5–16% (R² 0.94–0.95) and leaves
 the budget conclusions unchanged (§3.2 of that report).

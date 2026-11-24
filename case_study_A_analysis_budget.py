@@ -38,7 +38,11 @@ interpreted and combined:
    consistent with the coverage), u_c_transfer = sqrt(u_c^2 + u_sys_mc^2).
 
 For comparison, the original budget (every input independent with its full
-declared u, MC) is recomputed on the same model as u_indep_mc.
+declared u, MC) is recomputed on the same model as u_indep_mc. Two simpler
+intervals that do not propagate the inputs are also evaluated on the test
+cycles and printed only (log block "Comparison"): the seed ensemble alone,
+u_training, and a residual-based interval sqrt(u_training^2 + c^2) with
+c^2 = mean(e_val^2) - mean(u_training_val^2).
 
 Usage:
     python case_study_A_analysis_budget.py                       # baseline input, 'bound'
@@ -276,6 +280,21 @@ def main_budget(cfg: Config, exclude=(), n_points=100, sampling="first", random_
     print(f"  original budget (indep + train)  : {cov(np.sqrt(u_indep_mc**2 + u_tr**2)):.1%}")
     print(f"mean u_c / mean |error|            : {u_c.mean() / np.mean(np.abs(e)):.2f}")
     print(f"corr(u_c, |error|)                 : {np.corrcoef(u_c, np.abs(e))[0, 1]:.2f}")
+
+    # ---- comparison with two simpler intervals that do not propagate the inputs ----
+    # ensemble only: u_training; residual based: u_training plus a constant term from the
+    # validation residuals, u_res^2 = mean(e_val^2) - mean(u_training_val^2) (no u_rand term)
+    u_res_const = math.sqrt(max(0.0, msq - np.mean(u_training_va ** 2)))
+    u_res = np.sqrt(u_tr ** 2 + u_res_const ** 2)
+    cov1 = lambda u: np.mean(np.abs(e) <= u)
+    corr = lambda u: np.corrcoef(u, np.abs(e))[0, 1]
+    print("\n=== Comparison: intervals without input propagation (test cycles) ===")
+    print(f"constant term from validation residuals: {u_res_const:.4f}")
+    print(f"{'interval':34s} {'mean u':>8s} {'cov k=2':>8s} {'cov k=1':>8s} {'corr(u,|e|)':>12s}")
+    for name, u in (("u_training only (seed ensemble)", u_tr),
+                    ("u_training + validation constant", u_res),
+                    ("u_c (corrected budget)", u_c)):
+        print(f"{name:34s} {u.mean():8.4f} {cov(u):8.1%} {cov1(u):8.1%} {corr(u):12.2f}")
 
     out = np.c_[y[te], y_hat, u_rand_lpu, u_rand_mc, u_tr, u_c, covered,
                 mc_bias, np.full(len(te), u_model), u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc]

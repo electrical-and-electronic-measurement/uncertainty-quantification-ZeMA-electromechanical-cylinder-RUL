@@ -3,8 +3,8 @@ message: "If you use this material, please cite the paper (preferred-citation) a
 type: software
 title: "GUM-based uncertainty evaluation of a neural-network RUL estimator on the ZeMA cylinder data set: code, per-cycle results and run logs"
 version: 1.0.0
-date-released: {{RELEASE_DATE}}
-doi: {{ZENODO_DOI}}
+date-released: 2026-11-26
+doi: 10.5281/zenodo.24550383
 repository-code: "https://github.com/electrical-and-electronic-measurement/uncertainty-quantification-ZeMA-electromechanical-cylinder-RUL"
 license: [MIT, CC-BY-4.0]
 authors:
@@ -24,7 +24,7 @@ keywords:
   - ZeMA
 preferred-citation:
   type: article
-  title: "{{PAPER_TITLE}}"
+  title: "GUM-Based Uncertainty Evaluation for Neural-Network Measurement Models: A Five-Phase Methodology Applied to Remaining-Useful-Life Estimation"
   authors:
     - family-names: Buchicchio
       given-names: Emanuele

@@ -1,7 +1,7 @@
 # GUM-based uncertainty evaluation of a neural-network RUL estimator on the ZeMA cylinder data set — code, per-cycle results and run logs
 
 Supplementary material for Sections 5–5.4 of the paper: E. Buchicchio and
-P. Carbone, *{{PAPER_TITLE}}*, submitted to *Measurement Science and
+P. Carbone, *GUM-Based Uncertainty Evaluation for Neural-Network Measurement Models: A Five-Phase Methodology Applied to Remaining-Useful-Life Estimation*, submitted to *Measurement Science and
 Technology*. (File names keep the prefix `case_study_A_` from an earlier
 draft of the paper.) This case study applies the
 paper's uncertainty-quantification methodology (Phases 1–5) to a real regression
@@ -11,7 +11,7 @@ computed both analytically and via Monte Carlo.
 
 ## How to cite and licence
 
-Please cite both the paper above and this deposit (doi:{{ZENODO_DOI}});
+Please cite both the paper above and this deposit (doi:10.5281/zenodo.24550383);
 citation metadata are in [CITATION.cff](CITATION.cff). Source code is released
 under the MIT License, all other content (reports, figures, results, logs)
 under CC BY 4.0; see [LICENSE](LICENSE). The ZeMA dataset (Dorst et al. 2021,

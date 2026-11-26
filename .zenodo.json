@@ -2,7 +2,7 @@
   "title": "GUM-based uncertainty evaluation of a neural-network RUL estimator on the ZeMA cylinder data set: code, per-cycle results and run logs",
   "upload_type": "software",
   "version": "1.0.0",
-  "description": "Supplementary material (code, per-cycle results, run logs, reports and figures) for Sections 5-5.4 of the paper \"{{PAPER_TITLE}}\" (E. Buchicchio and P. Carbone, submitted to Measurement Science and Technology): remaining-useful-life estimation with a neural network on the ZeMA electromechanical cylinder dataset, with a GUM-based uncertainty budget computed by the law of propagation of uncertainty and by Monte Carlo (JCGM 101). The ZeMA dataset is not included; the scripts download it from Zenodo (doi:10.5281/zenodo.5185953).",
+  "description": "Supplementary material (code, per-cycle results, run logs, reports and figures) for Sections 5-5.4 of the paper \"GUM-Based Uncertainty Evaluation for Neural-Network Measurement Models: A Five-Phase Methodology Applied to Remaining-Useful-Life Estimation\" (E. Buchicchio and P. Carbone, submitted to Measurement Science and Technology): remaining-useful-life estimation with a neural network on the ZeMA electromechanical cylinder dataset, with a GUM-based uncertainty budget computed by the law of propagation of uncertainty and by Monte Carlo (JCGM 101). The ZeMA dataset is not included; the scripts download it from Zenodo (doi:10.5281/zenodo.5185953).",
   "creators": [
     {
       "name": "Buchicchio, Emanuele",

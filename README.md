@@ -1,7 +1,9 @@
-# Case Study A — GUM-Compliant Uncertainty Quantification for RUL Estimation
+# GUM-based uncertainty evaluation of a neural-network RUL estimator on the ZeMA cylinder data set — code, per-cycle results and run logs
 
-Supplementary material for Sections 5–5.4 of the paper
-*TODO: authors, title, journal, DOI*. This case study applies the
+Supplementary material for Sections 5–5.4 of the paper: E. Buchicchio and
+P. Carbone, *{{PAPER_TITLE}}*, submitted to *Measurement Science and
+Technology*. (File names keep the prefix `case_study_A_` from an earlier
+draft of the paper.) This case study applies the
 paper's uncertainty-quantification methodology (Phases 1–5) to a real regression
 task: estimating remaining useful life (RUL) of an electromechanical cylinder
 from multi-sensor time-series data, with a full metrological uncertainty budget
@@ -9,14 +11,14 @@ computed both analytically and via Monte Carlo.
 
 ## How to cite and licence
 
-Please cite both the paper above and this deposit (*TODO: Zenodo DOI*);
+Please cite both the paper above and this deposit (doi:{{ZENODO_DOI}});
 citation metadata are in [CITATION.cff](CITATION.cff). Source code is released
 under the MIT License, all other content (reports, figures, results, logs)
 under CC BY 4.0; see [LICENSE](LICENSE). The ZeMA dataset (Dorst et al. 2021,
 doi:10.5281/zenodo.5185953, CC BY 4.0) is not redistributed: the scripts
 download it from Zenodo.
 
-All figures are original; an earlier draft figure adapted from course material was replaced.
+All figures are original.
 
 ## Use case
 
@@ -32,9 +34,9 @@ only the **first 100 samples (first 50 ms)**, because
 downsampling — see `case_study_A_report_fullwindow.md` §1.
 
 **Task.** Regression. The measurand is the consumed-lifetime fraction at cycle
-*k*: `y_k = k/N ∈ [0,1]`, with `RUL = 1 − y_k`. The label is deterministic
-(defined purely from the cycle index), so label uncertainty is negligible by
-construction.
+*c*: `y_c = c/N ∈ [0,1]`, with `RUL = 1 − y_c`. The label is exact for this
+unit (defined from the cycle index); the definitional uncertainty of using it
+as a proxy for the RUL of another unit is not evaluated.
 
 **Goal.** Quantify, per test cycle, the standard uncertainty `u(ŷ)` on the
 model's prediction by combining:
@@ -44,9 +46,12 @@ model's prediction by combining:
   (GUM Supplement 1 / JCGM 101:2008), so the two can be cross-checked against
   each other;
 - **`u_training`** — training-process variability, estimated statistically as the
-  spread across a 10-seed model ensemble;
+  spread across a 10-seed model ensemble (initialization only: training is
+  full-batch);
+- **`u_calibration`** — any residual variance not explained by the two terms
+  above, estimated on a validation set (corrected budget only; 0 in every run);
 
-combined in quadrature, `u_c = sqrt(u_physical² + u_training²)`, and validated against
+combined in quadrature, `u_c = sqrt(u_physical² + u_training² + u_calibration²)`, and validated against
 empirical coverage of the resulting `±k·u_c` interval.
 
 **Original budget (first run).** LPU and Monte Carlo disagree by a median
@@ -54,7 +59,7 @@ empirical coverage of the resulting `±k·u_c` interval.
 (per the paper's own decision rule). Coverage at `k=2` is **100%** (vs. an
 ~95% target), with one dominant sensor channel (Pressure, 51.8% of
 first-layer sensitivity): its declared standard uncertainty is ~9× its
-cycle-to-cycle variation (`u/s ≈ 8.7`, median over the first 100 samples;
+cycle-to-cycle variation (`u/s ≈ 8.8`, median over the first 100 samples, training cycles;
 ≈10.6 over the whole 1 s window), a property of the data that z-score
 normalization preserves rather than creates. The point prediction itself is
 strong (`R² = 0.951`, 4.5× better RMSE than a naive mean-baseline). See
@@ -104,6 +109,53 @@ A blocked split (whole blocks of consecutive cycles held out, so no test cycle
 has a training neighbour) raises RMSE by only 5–16% (R² 0.94–0.95) and leaves
 the budget conclusions unchanged (§3.2 of that report).
 
+## Reproducing the paper's numbers
+
+Run from the repository root after the setup of §0 below. Each budget command
+prints its log to stdout (redirect it to `pipeline_run_budget_<variant>.log`)
+and writes `case_study_A_results_budget_<variant>.csv`; the first command
+prints `pipeline_run.log` and writes `case_study_A_results.csv`.
+
+```bash
+python case_study_A_analysis.py                                                                    # preliminary budget (§5.2): 0.98, 36.5%, 100%, MC convergence, MC mean shift
+python case_study_A_analysis_budget.py --random-model datasheet                                    # Table 1, Fig. 4, §5.2, §5.4
+python case_study_A_analysis_budget.py --random-model noise                                        # 4.7%, u_c 0.110, 99.8%
+python case_study_A_analysis_budget.py --random-model bound                                        # 6.3%, u_c 0.136, 99.9%; 98.7/93.9/74%
+python case_study_A_analysis_budget.py --random-model datasheet --exclude "Pneumatic pressure"     # §5.3: u_sys 0.383, u_c 0.089
+python case_study_A_analysis_budget.py --random-model datasheet --split blocked                    # §5.2 blocked split: RMSE 0.074, R² 0.95, 3.8%, 0.093, 99.3%
+python make_validation_figure.py --csv case_study_A_results_budget_first100_datasheet.csv \
+       --out zema_lpu_vs_mc_budget_first100_datasheet.pdf                                           # Fig. 4
+```
+
+| Paper | File |
+|---|---|
+| Table 1, Fig. 4, §5.2 (linearity, coverage, residuals, MC convergence), §5.4 | `pipeline_run_budget_first100_datasheet.log`, `case_study_A_results_budget_first100_datasheet.csv` |
+| §5.2: 4.7%, `u_c` = 0.110 | `pipeline_run_budget_first100_noise.log` |
+| §5.2: 6.3%, `u_c` = 0.136; §5.1: 98.7 / 93.9 / 74% | `pipeline_run_budget_first100_bound.log` |
+| §5.2: blocked split | `pipeline_run_budget_first100_datasheet_blocked50.log` |
+| §5.3: 0.383, 0.089 | `pipeline_run_budget_first100_no_pressure_datasheet.log` |
+| §5.2, §5.4: preliminary budget (0.98, 36.5%, MC convergence, MC mean shift) | `pipeline_run.log`, `case_study_A_results.csv`, `case_study_A_report.md` §7 |
+| §5.1: manufacturers' specifications | `case_study_A_dataset_report.md` §4.1 |
+| §5.1: 4766 cycles, one every 100, 1% / 1.5% of reading | `dataset_consistency.log` |
+
+**Log provenance.** All `pipeline_run.log` and `pipeline_run_budget_*.log` files and the `case_study_A_results_budget_*.csv` files were regenerated on 26 Nov 2026 from the code of release 1.0.0 (Python 3.10.12, pinned `requirements.txt`). The re-run is deterministic: every line of the previous logs and every value of the previous CSVs is reproduced unchanged; the re-run only adds the MC convergence block, the MC mean shift and the CSV column `mc_bias_indep`. The validation figures `zema_lpu_vs_mc_budget_*.pdf` were not regenerated (a regeneration gives the same content). `pipeline_run.log` and
+`case_study_A_results.csv` were first produced in July 2026 with the labels
+`u_A`/`u_B`; the labels were renamed in October 2026 to the paper's notation
+(`u_physical`/`u_training`) and the run was repeated for this release. The
+input standardization uses `std` with divisor *J* (ddof = 0) instead of the
+*J* − 1 of the paper's appendix; with *J* = 3242 the difference is 0.015%.
+
+## Code provenance and verification
+
+The code was written with the help of Claude (Anthropic) and reviewed by the
+authors. It was verified by: the LPU self-test against a 200 000-sample Monte
+Carlo on a random MLP (`--self-test`, agreement < 2%); the agreement of LPU and
+MC on the real model (3.6% for the final budget); the MC convergence check in
+each log; the notebook `case_study_A_run_analysis.ipynb`, which re-runs the
+pipeline cell by cell and reproduces `pipeline_run.log`; and
+`check_dataset_consistency.py`, which recomputes every number of the dataset
+report from the HDF5 file.
+
 ## Tools
 
 | File | Role |
@@ -117,7 +169,7 @@ the budget conclusions unchanged (§3.2 of that report).
 | [case_study_A_eda.ipynb](case_study_A_eda.ipynb) | Exploratory data analysis of the raw ZeMA input data (value/uncertainty distributions per channel, degradation trends, correlations, sanity checks) — run before modeling, independent of `case_study_A_analysis.py`. |
 | [case_study_A_eda_outliers.ipynb](case_study_A_eda_outliers.ipynb) | Follow-up to the EDA above: investigates the start-of-cycle spikes visible in Pneumatic pressure/Velocity (shown to be a within-cycle acquisition transient, not a life-stage effect), builds a data-driven detector for genuine early-life ("running-in") outlier cycles on other channels (notably Axial force, Motor current phase 1), and reruns the key EDA views with those cycles excluded. |
 | [case_study_A_feature_trimming.ipynb](case_study_A_feature_trimming.ipynb) | Implements and validates the outliers notebook's recommendation to trim the leading acquisition-transient samples (Pneumatic pressure K=7, Velocity K=6, Axial force K=3) before feature extraction: builds the trimmed 1,084-dim feature set, then trains the pipeline's own unmodified MLP (`make_mlp`/`train`, 10-seed ensemble) on raw vs. trimmed features under an identical split and compares test RMSE/R². Includes the exact patch point in `case_study_A_analysis.py` to adopt it. |
-| [case_study_A_run_analysis.ipynb](case_study_A_run_analysis.ipynb) | Executes the full GUM pipeline end to end as a cell-by-cell walkthrough (Phases 1–5), reusing every function from `case_study_A_analysis.py` unmodified, for two scenarios: **A** raw features (reproduces the headline `README.md` numbers exactly, as a fidelity check) and **B** trimmed features via `build_trimmed_dataset()` — recomputing the *full* uncertainty budget (`u_physical` LPU+MC, `u_training`, `u_c`, coverage), not just RMSE, so the trimming recommendation can be judged on the uncertainty quantification itself. Does not overwrite `case_study_A_results.csv`. |
+| [case_study_A_run_analysis.ipynb](case_study_A_run_analysis.ipynb) | Executes the full GUM pipeline end to end as a cell-by-cell walkthrough (Phases 1–5), reusing every function from `case_study_A_analysis.py` unmodified, for two scenarios: **A** raw features (reproduces the *original-budget* numbers of `pipeline_run.log` exactly, as a fidelity check) and **B** trimmed features via `build_trimmed_dataset()` — recomputing the *full* uncertainty budget (`u_physical` LPU+MC, `u_training`, `u_c`, coverage), not just RMSE, so the trimming recommendation can be judged on the uncertainty quantification itself. Does not overwrite `case_study_A_results.csv`. |
 | [case_study_A_analysis_trimmed.py](case_study_A_analysis_trimmed.py) | Standalone, CLI-runnable sibling of `case_study_A_analysis.py` (same imports, unmodified) that trims the acquisition-transient samples before training and writes `case_study_A_results_trimmed.csv`, plus the extra diagnostics (sensitivity ranking, MC convergence, `u_c`-actionability checks) behind `case_study_A_report_trimmed.md`. |
 | [case_study_A_report_trimmed.md](case_study_A_report_trimmed.md) | Full execution report for the trimmed-feature variant, structured like `case_study_A_report.md`, with an explicit section-by-section comparison against the baseline (no-trim) results — including a notable finding the point-prediction-only comparison in `case_study_A_feature_trimming.ipynb` couldn't see: trimming reverses the sign of the (weak) age-vs-uncertainty correlation. |
 | [case_study_A_analysis_fullwindow.py](case_study_A_analysis_fullwindow.py) | CLI-runnable sibling of `case_study_A_analysis.py` (same imports, unmodified) that reads the HDF5 directly to choose which within-cycle samples feed the model — `--sampling centre` (decimation over the whole 1 s window, default), `first` (what `ZeMASamples` returns) or `blockmean` (block means, conservative fully-correlated uncertainty) — with `--n-points` and `--exclude <channel>` for channel ablations. Writes `case_study_A_results_<variant>.csv` plus the same diagnostics as the trimmed variant. |
@@ -135,13 +187,13 @@ the budget conclusions unchanged (§3.2 of that report).
 | File | Role |
 |---|---|
 | [case_study_A_results.csv](case_study_A_results.csv) | Real output, 953 held-out test cycles × 7 columns: `y_true, y_hat, u_physical_lpu, u_physical_mc, u_training, u_c, covered_k2`. |
-| [zema_lpu_vs_mc.pdf](zema_lpu_vs_mc.pdf) | The real `fig:zema_lpu_vs_mc` validation figure, generated from `case_study_A_results.csv`. |
-| [pipeline_run.log](pipeline_run.log) | Captured stdout of the actual `case_study_A_analysis.py` run that produced the results above. |
+| [zema_lpu_vs_mc.pdf](zema_lpu_vs_mc.pdf) | Validation figure of the **original (superseded) budget** (36.5% LPU/MC gap), generated from `case_study_A_results.csv`. Figure 4 of the paper is `zema_lpu_vs_mc_budget_first100_datasheet.pdf`. |
+| [pipeline_run.log](pipeline_run.log) | Captured stdout of the `case_study_A_analysis.py` run that produced the results above, including the MC convergence check and the mean shift of the MC mean. |
 | [case_study_A_report.pdf](case_study_A_report.pdf) / [case_study_A_report.tex](case_study_A_report.tex) | Rendered/typeset versions of the report. |
 | [case_study_A_results_trimmed.csv](case_study_A_results_trimmed.csv) | Same schema as `case_study_A_results.csv`, but on the trimmed (1,084-dim) feature set — output of `case_study_A_analysis_trimmed.py`. |
 | [zema_lpu_vs_mc_trimmed.pdf](zema_lpu_vs_mc_trimmed.pdf) | The `fig:zema_lpu_vs_mc` validation figure for the trimmed-feature run. |
 | [pipeline_run_trimmed.log](pipeline_run_trimmed.log) | Captured stdout of the `case_study_A_analysis_trimmed.py` run behind `case_study_A_report_trimmed.md`. |
-| `case_study_A_results_budget_<variant>.csv` / `zema_lpu_vs_mc_budget_<variant>.pdf` / `pipeline_run_budget_<variant>.log` | Outputs of `case_study_A_analysis_budget.py` behind `case_study_A_report_budget.md`: `first100_{bound,noise,datasheet}` and `first100_no_pressure_{bound,noise,datasheet}`, plus the blocked-split runs with suffix `_blocked<size>`. The CSV keeps the 7 standard columns (`u_physical_*` = random part) plus `mc_bias, u_model` (`u_model` = `u_calibration`), `u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc`. |
+| `case_study_A_results_budget_<variant>.csv` / `zema_lpu_vs_mc_budget_<variant>.pdf` / `pipeline_run_budget_<variant>.log` | Outputs of `case_study_A_analysis_budget.py` behind `case_study_A_report_budget.md`: `first100_{bound,noise,datasheet}` and `first100_no_pressure_{bound,noise,datasheet}`, plus the blocked-split runs with suffix `_blocked<size>`. The CSV keeps the 7 standard columns (`u_physical_*` = random part) plus `mc_bias, u_model` (`u_model` = `u_calibration`), `u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc, mc_bias_indep` (`mc_bias_indep` = MC mean − f(x) of the original budget). Each log ends with an MC convergence check on test cycle #0 (M = 10⁴/10⁵/10⁶, `u_rand` and `u_sys`). |
 | `case_study_A_results_<variant>.csv` / `zema_lpu_vs_mc_<variant>.pdf` / `pipeline_run_<variant>.log` | Results CSV (same schema), validation figure and captured stdout of `case_study_A_analysis_fullwindow.py` for each variant behind `case_study_A_report_fullwindow.md`: `fullwindow`, `fullwindow_no_pressure`, `first100_no_pressure`, `blockmean`. |
 
 ## Results summary
@@ -158,7 +210,10 @@ the budget conclusions unchanged (§3.2 of that report).
 | first 100, no pressure | `datasheet` | 0.0694 | 0.073 | 3.2% | 0.089 | 99.4% / 90.2% | 0.383 |
 
 `u_calibration` (validation) is 0 in every run. The bold row is the one used in
-Section 5.3 of the paper. Blocked split and details in
+Section 5.3 of the paper. MC convergence on test cycle #0 (bold row, M = 10⁴ →
+10⁵ → 10⁶): `u_rand` changes by 0.75% and 0.28%, `u_sys` by 0.12% and 0.03%
+(last block of each `pipeline_run_budget_*.log`; < 2% from 10⁴ to 10⁵ in
+every variant). Blocked split and details in
 `case_study_A_report_budget.md` §3.
 
 ### Original budget (superseded)
@@ -175,7 +230,8 @@ Means over the 953-cycle held-out test set:
 | mean `u_training` (10-seed ensemble) | 0.0493 |
 | mean `u_c` (combined, MC-based; the CSV `u_c` column uses the LPU value, mean 0.6437) | ≈0.985 |
 | Empirical coverage @ k=2 | 100.0% (953/953) |
-| MC convergence (10k→100k→1M) | Δ 1.75% → 0.08% |
+| MC convergence (10k→100k→1M, test point #0) | Δ 1.75% → 0.08% |
+| MC mean − f(x), mean over test cycles | 0.47 (0.468) |
 
 Full uncertainty budget table and per-channel sensitivity ranking (Pressure
 51.8%, Velocity 25.2%, plain-bearing acceleration 11.5% — 88.5% combined) are in
@@ -311,11 +367,15 @@ convergence check is computed in chunks but still uses several GB.
 ### 3. Generate the validation figure
 
 ```bash
+# Figure 4 of the paper (corrected budget)
+python make_validation_figure.py --csv case_study_A_results_budget_first100_datasheet.csv \
+       --out zema_lpu_vs_mc_budget_first100_datasheet.pdf
+# original (superseded) budget
 python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_vs_mc.pdf
 ```
 
-`--csv` and `--out` both default to the real filenames shown above, so a
-bare invocation reproduces `zema_lpu_vs_mc.pdf` from the real results.
+`--csv` and `--out` default to the original-budget files, so a bare
+invocation reproduces `zema_lpu_vs_mc.pdf`.
 
 ### 4. Rebuild the paper figures
 
@@ -334,11 +394,11 @@ paper's `.tex`.
 
 ### Interpreting a re-run that disagrees with this report
 
-- **LPU vs. MC median relative difference** below ~5–10% → LPU may be
-  reported as primary `u_physical`. Above that → linearity assumption is violated at
-  this depth/uncertainty magnitude; report MC as primary instead. Either
-  outcome is a valid, publishable result — do not tune the network to force
-  agreement.
+- **LPU vs. MC median relative difference** within a tolerance stated in
+  advance → the linearization is adequate and LPU can be reported alongside
+  MC; outside it → report MC as primary. The paper uses MC for `u_c` in either
+  case. Either outcome is a valid, publishable result — do not tune the
+  network to force agreement.
 - **Coverage @ k=2** far from ~95%: under-coverage usually means a missing
   uncertainty source (check residual bias first). For over-coverage (as found
   here), first compare each channel's declared `u` with its cross-cycle spread

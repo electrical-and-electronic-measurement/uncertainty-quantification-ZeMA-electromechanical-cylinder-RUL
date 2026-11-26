@@ -1,8 +1,8 @@
 {
-  "title": "Case Study A: GUM-compliant uncertainty quantification for RUL estimation on the ZeMA electromechanical cylinder dataset",
+  "title": "GUM-based uncertainty evaluation of a neural-network RUL estimator on the ZeMA cylinder data set: code, per-cycle results and run logs",
   "upload_type": "software",
   "version": "1.0.0",
-  "description": "Supplementary material (code, results, reports and figures) for Case Study A of the paper: remaining-useful-life estimation with a neural network on the ZeMA electromechanical cylinder dataset, with a GUM-compliant uncertainty budget computed by the law of propagation of uncertainty and by Monte Carlo (JCGM 101). The ZeMA dataset is not included; the scripts download it from Zenodo (doi:10.5281/zenodo.5185953).",
+  "description": "Supplementary material (code, per-cycle results, run logs, reports and figures) for Sections 5-5.4 of the paper \"{{PAPER_TITLE}}\" (E. Buchicchio and P. Carbone, submitted to Measurement Science and Technology): remaining-useful-life estimation with a neural network on the ZeMA electromechanical cylinder dataset, with a GUM-based uncertainty budget computed by the law of propagation of uncertainty and by Monte Carlo (JCGM 101). The ZeMA dataset is not included; the scripts download it from Zenodo (doi:10.5281/zenodo.5185953).",
   "creators": [
     {
       "name": "Buchicchio, Emanuele",
@@ -10,12 +10,16 @@
       "orcid": "0000-0002-2786-5931"
     }
   ],
+  "access_right": "open",
   "license": "cc-by-4.0",
+  "language": "eng",
   "keywords": [
     "measurement uncertainty",
     "GUM",
     "Monte Carlo",
     "law of propagation of uncertainty",
+    "uncertainty propagation",
+    "machine learning metrology",
     "neural networks",
     "remaining useful life",
     "ZeMA"
@@ -26,6 +30,17 @@
       "relation": "isDerivedFrom",
       "resource_type": "dataset",
       "scheme": "doi"
+    },
+    {
+      "identifier": "10.5281/zenodo.7566723",
+      "relation": "requires",
+      "resource_type": "software",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "https://github.com/electrical-and-electronic-measurement/uncertainty-quantification-ZeMA-electromechanical-cylinder-RUL",
+      "relation": "isSupplementTo",
+      "scheme": "url"
     }
   ],
   "notes": "Source code is released under the MIT License, all other content under CC BY 4.0 (see LICENSE)."

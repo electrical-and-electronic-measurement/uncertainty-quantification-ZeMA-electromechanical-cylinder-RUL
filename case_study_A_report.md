@@ -2,7 +2,7 @@
 
 ## GUM-compliant uncertainty quantification for RUL estimation on the ZeMA electromechanical cylinder dataset
 
-**Supplementary material for Section 5.** This document is a step-by-step record of the actual execution of Case Study A: what was run, on what data, with what versions, and what came out — including one methodologically significant finding (§7) that shapes how the results should be read. It is meant to accompany `case_study_A_analysis.py`, `case_study_A_results.csv`, and `zema_lpu_vs_mc.pdf` as supplementary material to the paper.
+**Supplementary material for Section 5.** This document is a step-by-step record of the actual execution of Case Study A: what was run, on what data, with what versions, and what came out — including one methodologically significant finding (§7) that shapes how the results should be read. It is meant to accompany `case_study_A_analysis.py`, `case_study_A_results.csv`, and `zema_lpu_vs_mc.pdf` (the validation figure of this original, superseded budget; Figure 4 of the paper is `zema_lpu_vs_mc_budget_first100_datasheet.pdf`) as supplementary material to the paper.
 
 > **Status update (29 Oct 2026).** The numbers in this report are still correct, but they describe the *original* budget. Later work changes how they should be read:
 >
@@ -12,7 +12,7 @@
 > 4. **Inputs are the first 50 ms** of the 1 s return-stroke window, not 100 readings spread over the cycle (`case_study_A_report_fullwindow.md` §1).
 > 5. The CSV `u_c` and the coverage in §7–§8 combine the **LPU** value; the MC-based figures are given in the text.
 >
-> Section 5.1 of the paper uses the corrected budget (`datasheet` model).
+> Sections 5.2–5.3 of the paper use the corrected budget (`datasheet` model).
 
 ---
 
@@ -220,7 +220,7 @@ The top three channels (Pressure, Velocity, plain-bearing acceleration) account 
 ```
 n_mc=10,000     u_physical_mc = 9.1645e-01
 n_mc=100,000    u_physical_mc = 9.3246e-01   (Δ = 1.75% from 10k)
-n_mc=1,000,000  u_physical_mc = 9.3171e-01   (Δ = 0.08% from 100k)
+n_mc=1,000,000  u_physical_mc = 9.3171e-01   (Δ = 0.08% from 100k)   [block "MC convergence check" of pipeline_run.log]
 ```
 
 $M=10^4$ is adequately converged (sub-2% sampling noise) relative to the 36.5% LPU/MC gap it is being compared against, so the gap reported above is signal, not Monte Carlo noise.
@@ -296,7 +296,7 @@ python make_validation_figure.py --csv case_study_A_results.csv --out zema_lpu_v
 | Label (RUL definition) | — | negligible | Deterministic, $y_k=k/N$ |
 | **Combined** $u_c=\sqrt{u_{\mathrm{physical}}^2+u_{\mathrm{training}}^2}$ | — | $\mathbf{0.985}$ | Dominated by $u_{\mathrm{physical}}$, itself dominated by the Pressure channel |
 
-> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{calibration}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3; Section 5.1 of the paper reports it with the `datasheet` model.
+> **Update.** This is the original budget, with the full declared input uncertainty propagated as independent noise. The corrected budget (random/systematic split, $u_{\mathrm{calibration}}$ from validation, MC combination) is in `case_study_A_report_budget.md` §3; Sections 5.2–5.3 of the paper report it with the `datasheet` model.
 
 ---
 

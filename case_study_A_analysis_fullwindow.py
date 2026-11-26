@@ -38,7 +38,7 @@ import torch
 
 from case_study_A_analysis import (
     Config, normalize_with_uncertainty, make_mlp, train,
-    propagate_lpu, propagate_mc, self_test_lpu,
+    propagate_lpu, propagate_mc, propagate_mc_chunked, self_test_lpu,
 )
 from case_study_A_analysis_trimmed import CHANNEL_NAMES, sensitivity_ranking
 
@@ -107,20 +107,6 @@ def load_zema_fullwindow(cfg: Config, n_points: int = N_POINTS, sampling: str = 
     UX = np.concatenate(u_parts, axis=1).astype(np.float64)
     y = np.linspace(0.0, 1.0, X.shape[0])                       # consumed life
     return X, UX, y
-
-
-@torch.no_grad()
-def propagate_mc_chunked(model, x, ux_std, n_mc: int, seed: int = 0, chunk: int = 100_000):
-    """Same estimator as `propagate_mc`, in chunks so 1M x 2200 inputs fit in memory."""
-    g = torch.Generator().manual_seed(seed)
-    s1 = s2 = 0.0
-    for start in range(0, n_mc, chunk):
-        m = min(chunk, n_mc - start)
-        eps = torch.randn(m, x.numel(), generator=g, dtype=x.dtype)
-        out = model(x.unsqueeze(0) + eps * ux_std.unsqueeze(0))
-        s1 += out.sum().item(); s2 += (out ** 2).sum().item()
-    mean = s1 / n_mc
-    return mean, math.sqrt((s2 - n_mc * mean ** 2) / (n_mc - 1))
 
 
 def drop_channels(X, UX, D, exclude):

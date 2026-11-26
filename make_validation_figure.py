@@ -1,5 +1,5 @@
 r"""
-Two-panel validation figure for Case Study A (Section 5.1, fig:zema_lpu_vs_mc).
+Two-panel validation figure for Case Study A (Section 5.2, fig:zema_lpu_vs_mc).
 
 Panel 1 (left)  : analytical LPU vs. Monte Carlo estimates of u_physical, one point
                   per held-out test cycle, with the identity line and the

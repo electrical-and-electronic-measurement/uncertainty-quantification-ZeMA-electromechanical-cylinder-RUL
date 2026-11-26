@@ -1,26 +1,44 @@
-
 cff-version: 1.2.0
-message: "If you use this material, please cite it as below."
+message: "If you use this material, please cite the paper (preferred-citation) and this deposit."
 type: software
-title: "Case Study A: GUM-compliant uncertainty quantification for RUL estimation on the ZeMA electromechanical cylinder dataset"
-version: 0.9.1
-date-released: 2026-11-22
+title: "GUM-based uncertainty evaluation of a neural-network RUL estimator on the ZeMA cylinder data set: code, per-cycle results and run logs"
+version: 1.0.0
+date-released: {{RELEASE_DATE}}
+doi: {{ZENODO_DOI}}
+repository-code: "https://github.com/electrical-and-electronic-measurement/uncertainty-quantification-ZeMA-electromechanical-cylinder-RUL"
 license: [MIT, CC-BY-4.0]
 authors:
   - family-names: Buchicchio
     given-names: Emanuele
-    orcid: "https://orcid.org/0000-0002-2786-5931" 
+    orcid: "https://orcid.org/0000-0002-2786-5931"
     affiliation: "Department of Engineering, University of Perugia"
 keywords:
   - measurement uncertainty
   - GUM
   - Monte Carlo
   - law of propagation of uncertainty
+  - uncertainty propagation
+  - machine learning metrology
   - neural networks
   - remaining useful life
   - ZeMA
+preferred-citation:
+  type: article
+  title: "{{PAPER_TITLE}}"
+  authors:
+    - family-names: Buchicchio
+      given-names: Emanuele
+      orcid: "https://orcid.org/0000-0002-2786-5931"
+      affiliation: "Department of Engineering, University of Perugia"
+    - family-names: Carbone
+      given-names: Paolo
+      orcid: "https://orcid.org/0000-0003-0540-1287"
+      affiliation: "Department of Engineering, University of Perugia"
+  journal: "Measurement Science and Technology"
+  notes: "Submitted"
+  year: 2026
 references:
-  - type: dataset
+  - type: data
     title: "Sensor data set of one electromechanical cylinder at ZeMA testbed (ZeMA DAQ and Smart-Up Unit)"
     authors:
       - family-names: Dorst

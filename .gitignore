@@ -16,3 +16,6 @@ __pycache__/
 *.synctex.gz
 *.fdb_latexmk
 *.fls
+
+# LaTeX logs of the figures (pipeline_run*.log are versioned)
+paper_figures/*.log

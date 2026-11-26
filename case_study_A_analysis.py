@@ -173,6 +173,31 @@ def propagate_mc(model, x, ux_std, n_mc: int, seed: int = 0):
     return samples.mean().item(), samples.std(unbiased=True).item()
 
 
+@torch.no_grad()
+def propagate_mc_chunked(model, x, ux_std, n_mc: int, seed: int = 0, chunk: int = 100_000):
+    """Same estimator as `propagate_mc`, in chunks so 1M x 2200 inputs fit in memory."""
+    g = torch.Generator().manual_seed(seed)
+    s1 = s2 = 0.0
+    for start in range(0, n_mc, chunk):
+        m = min(chunk, n_mc - start)
+        eps = torch.randn(m, x.numel(), generator=g, dtype=x.dtype)
+        out = model(x.unsqueeze(0) + eps * ux_std.unsqueeze(0))
+        s1 += out.sum().item(); s2 += (out ** 2).sum().item()
+    mean = s1 / n_mc
+    return mean, math.sqrt((s2 - n_mc * mean ** 2) / (n_mc - 1))
+
+
+def mc_convergence(model, x, ux_std, label="u_physical_mc", sizes=(10_000, 100_000, 1_000_000)):
+    """Prints the MC standard uncertainty for increasing M on one input and the relative changes."""
+    u = {}
+    for M in sizes:
+        _, u[M] = propagate_mc_chunked(model, x, ux_std, M, seed=0)
+        print(f"  n_mc={M:>9,}   {label} = {u[M]:.6e}")
+    deltas = [abs(u[b] - u[a]) / u[a] for a, b in zip(sizes, sizes[1:])]
+    print("  " + "   ".join(f"delta {a:,}->{b:,} = {d:.2%}" for (a, b), d in zip(zip(sizes, sizes[1:]), deltas)))
+    return u
+
+
 # ----------------------------------------------------------------------------
 # Phase 5 -- self test on synthetic data (no dataset download required)
 # ----------------------------------------------------------------------------
@@ -224,13 +249,14 @@ def main(cfg: Config):
     model = models[0]                            # reference model for LPU/MC
 
     # ---- u_physical via LPU, validated against MC, on the test set ----
-    rows = []
+    rows, mc_shift = [], []
     for j, i in enumerate(te):
         x = torch.tensor(Xn[i], dtype=torch.float64)
         ux = torch.tensor(UXn[i], dtype=torch.float64)
         yhat, U_y = propagate_lpu(model, x, torch.diag(ux ** 2))
         u_physical_lpu = math.sqrt(U_y.item())
-        _, u_physical_mc = propagate_mc(model, x, ux, cfg.n_mc, seed=j)
+        mc_mean, u_physical_mc = propagate_mc(model, x, ux, cfg.n_mc, seed=j)
+        mc_shift.append(mc_mean - yhat.item())
         # u_c combines the LPU estimate; the MC-based combination would be
         # sqrt(u_physical_mc**2 + u_training[j]**2)
         u_c = math.sqrt(u_physical_lpu ** 2 + u_training[j] ** 2)
@@ -248,8 +274,13 @@ def main(cfg: Config):
     print(f"mean u_training (ensemble) : {r[:,4].mean():.4e}")
     print(f"mean u_c (combined)        : {r[:,5].mean():.4e}")
     print(f"empirical coverage @ k=2   : {r[:,6].mean():.1%}  (target ~95%)")
+    print(f"MC mean - f(x), mean |.|   : {np.mean(np.abs(mc_shift)):.4e}")
     np.savetxt("case_study_A_results.csv", r, delimiter=",",
                header="y_true,y_hat,u_physical_lpu,u_physical_mc,u_training,u_c,covered_k2")
+
+    print("\n=== MC convergence check (held-out test point #0) ===")
+    mc_convergence(model, torch.tensor(Xn[te[0]], dtype=torch.float64),
+                   torch.tensor(UXn[te[0]], dtype=torch.float64))
 
 
 if __name__ == "__main__":

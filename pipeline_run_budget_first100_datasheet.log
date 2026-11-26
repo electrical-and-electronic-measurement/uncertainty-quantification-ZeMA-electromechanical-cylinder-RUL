@@ -45,6 +45,7 @@ mean u_c (same instrument, MC)     : 9.3367e-02
 mean u_sys (LPU / MC, transfer)    : 5.9814e-01 / 7.8184e-01
 mean u_c (transfer)                : 7.8782e-01
 mean u_indep (MC, original budget) : 1.0001e+00
+MC mean - f(x) (indep), mean |.|   : 4.6740e-01
 coverage @ k=2:
   u_training only                  : 89.8%
   u_rand + u_training              : 99.6%
@@ -60,5 +61,15 @@ interval                             mean u  cov k=2  cov k=1  corr(u,|e|)
 u_training only (seed ensemble)      0.0510    89.8%    61.4%         0.45
 u_training + validation constant     0.0660    96.0%    76.9%         0.43
 u_c (corrected budget)               0.0934    99.6%    89.2%         0.45
+
+=== MC convergence (test cycle #0, M = 10^4 / 10^5 / 10^6) ===
+  n_mc=   10,000   u_rand_mc = 6.352674e-02
+  n_mc=  100,000   u_rand_mc = 6.304793e-02
+  n_mc=1,000,000   u_rand_mc = 6.286963e-02
+  delta 10,000->100,000 = 0.75%   delta 100,000->1,000,000 = 0.28%
+  n_mc=   10,000   u_sys_mc = 7.128557e-01
+  n_mc=  100,000   u_sys_mc = 7.119884e-01
+  n_mc=1,000,000   u_sys_mc = 7.122371e-01
+  delta 10,000->100,000 = 0.12%   delta 100,000->1,000,000 = 0.03%
 
 wrote case_study_A_results_budget_first100_datasheet.csv  (u_physical_* = random part, same-instrument use)

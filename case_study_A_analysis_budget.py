@@ -62,7 +62,7 @@ import torch
 
 from case_study_A_analysis import (
     Config, normalize_with_uncertainty, make_mlp, train,
-    propagate_lpu, propagate_mc, self_test_lpu,
+    propagate_lpu, propagate_mc, self_test_lpu, mc_convergence,
 )
 from case_study_A_analysis_fullwindow import (
     SAMPLINGS, load_zema_fullwindow, drop_channels,
@@ -172,6 +172,20 @@ def propagate_sys(model, x, u_sys, spans, n_mc: int, seed: int = 0):
     return math.sqrt(U_y.item()), out.std(unbiased=True).item()
 
 
+@torch.no_grad()
+def propagate_sys_mc_chunked(model, x, u_sys, spans, n_mc: int, seed: int = 0, chunk: int = 100_000):
+    """MC part of `propagate_sys` in chunks (for the convergence check up to 1e6 trials)."""
+    M = channel_matrix(u_sys, spans)
+    g = torch.Generator().manual_seed(seed)
+    s1 = s2 = 0.0
+    for start in range(0, n_mc, chunk):
+        m = min(chunk, n_mc - start)
+        out = model(x.unsqueeze(0) + torch.randn(m, M.shape[0], generator=g, dtype=x.dtype) @ M)
+        s1 += out.sum().item(); s2 += (out ** 2).sum().item()
+    mean = s1 / n_mc
+    return mean, math.sqrt((s2 - n_mc * mean ** 2) / (n_mc - 1))
+
+
 def budget_rows(model, Xn, URn, USn, UXn, idx, u_training, spans, cfg, with_extra=True):
     rows = []
     for j, i in enumerate(idx):
@@ -186,9 +200,9 @@ def budget_rows(model, Xn, URn, USn, UXn, idx, u_training, spans, cfg, with_extr
         if with_extra:
             us = torch.tensor(USn[i], dtype=torch.float64)
             u_sys_lpu, u_sys_mc = propagate_sys(model, x, us, spans, cfg.n_mc, seed=j)
-            _, u_indep_mc = propagate_mc(model, x, torch.tensor(UXn[i], dtype=torch.float64),
-                                         cfg.n_mc, seed=j)
-            row += [u_sys_lpu, u_sys_mc, u_indep_mc]
+            indep_mean, u_indep_mc = propagate_mc(model, x, torch.tensor(UXn[i], dtype=torch.float64),
+                                                  cfg.n_mc, seed=j)
+            row += [u_sys_lpu, u_sys_mc, u_indep_mc, indep_mean - y_hat]
         rows.append(row)
         if with_extra and ((j + 1) % 200 == 0 or (j + 1) == len(idx)):
             print(f"  propagated {j + 1}/{len(idx)} test cycles")
@@ -251,7 +265,7 @@ def main_budget(cfg: Config, exclude=(), n_points=100, sampling="first", random_
 
     # ---- test set ----
     t = budget_rows(model, Xn, URn, USn, UXn, te, u_training_te, spans, cfg)
-    y_hat, u_rand_lpu, u_rand_mc, mc_bias, u_tr, u_sys_lpu, u_sys_mc, u_indep_mc = t.T
+    y_hat, u_rand_lpu, u_rand_mc, mc_bias, u_tr, u_sys_lpu, u_sys_mc, u_indep_mc, mc_bias_indep = t.T
     e = y[te] - y_hat
     u_c = np.sqrt(u_rand_mc ** 2 + u_tr ** 2 + u_model ** 2)
     u_c_transfer = np.sqrt(u_c ** 2 + u_sys_mc ** 2)
@@ -272,6 +286,7 @@ def main_budget(cfg: Config, exclude=(), n_points=100, sampling="first", random_
     print(f"mean u_sys (LPU / MC, transfer)    : {u_sys_lpu.mean():.4e} / {u_sys_mc.mean():.4e}")
     print(f"mean u_c (transfer)                : {u_c_transfer.mean():.4e}")
     print(f"mean u_indep (MC, original budget) : {u_indep_mc.mean():.4e}")
+    print(f"MC mean - f(x) (indep), mean |.|   : {np.mean(np.abs(mc_bias_indep)):.4e}")
     print("coverage @ k=2:")
     print(f"  u_training only                  : {cov(u_tr):.1%}")
     print(f"  u_rand + u_training              : {cov(np.sqrt(u_rand_mc**2 + u_tr**2)):.1%}")
@@ -296,10 +311,24 @@ def main_budget(cfg: Config, exclude=(), n_points=100, sampling="first", random_
                     ("u_c (corrected budget)", u_c)):
         print(f"{name:34s} {u.mean():8.4f} {cov(u):8.1%} {cov1(u):8.1%} {corr(u):12.2f}")
 
+    # ---- Monte Carlo convergence on one test cycle (JCGM 101 reporting: number of trials) ----
+    print("\n=== MC convergence (test cycle #0, M = 10^4 / 10^5 / 10^6) ===")
+    i0 = te[0]
+    x0 = torch.tensor(Xn[i0], dtype=torch.float64)
+    mc_convergence(model, x0, torch.tensor(URn[i0], dtype=torch.float64), label="u_rand_mc")
+    us0 = torch.tensor(USn[i0], dtype=torch.float64)
+    u_s = {M: propagate_sys_mc_chunked(model, x0, us0, spans, M, seed=0)[1]
+           for M in (10_000, 100_000, 1_000_000)}
+    for M, u in u_s.items():
+        print(f"  n_mc={M:>9,}   u_sys_mc = {u:.6e}")
+    print(f"  delta 10,000->100,000 = {abs(u_s[100_000] - u_s[10_000]) / u_s[10_000]:.2%}   "
+          f"delta 100,000->1,000,000 = {abs(u_s[1_000_000] - u_s[100_000]) / u_s[100_000]:.2%}")
+
     out = np.c_[y[te], y_hat, u_rand_lpu, u_rand_mc, u_tr, u_c, covered,
-                mc_bias, np.full(len(te), u_model), u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc]
+                mc_bias, np.full(len(te), u_model), u_sys_lpu, u_sys_mc, u_c_transfer, u_indep_mc,
+                mc_bias_indep]
     cols = ("y_true,y_hat,u_physical_lpu,u_physical_mc,u_training,u_c,covered_k2,"
-            "mc_bias,u_model,u_sys_lpu,u_sys_mc,u_c_transfer,u_indep_mc")
+            "mc_bias,u_model,u_sys_lpu,u_sys_mc,u_c_transfer,u_indep_mc,mc_bias_indep")
     fname = f"case_study_A_results_budget_{tag}.csv"
     np.savetxt(fname, out, delimiter=",", header=cols)
     print(f"\nwrote {fname}  (u_physical_* = random part, same-instrument use)")
